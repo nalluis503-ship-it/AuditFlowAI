@@ -5,11 +5,11 @@
 | Campo | Valor |
 |---|---|
 | Proyecto | AuditFlow AI |
-| Version actual | v0.2 |
+| Version actual | v0.3 |
 | Estado | En desarrollo |
 | Arquitectura | Locked v1 |
 | Fase actual | Phase 2 - Backend Base |
-| Ultimo checkpoint | v0.2 - Architecture draft documents |
+| Ultimo checkpoint | v0.3 - Backend skeleton |
 
 ---
 
@@ -19,7 +19,7 @@
 |---|---|---:|---:|
 | 0 | Environment Setup | Completada | 100% |
 | 1 | Architecture Lock | Completada | 100% |
-| 2 | Backend Base | Pendiente | 0% |
+| 2 | Backend Base | En proceso | 60% |
 | 3 | Frontend Base | Pendiente | 0% |
 | 4 | Canvas Engine | Pendiente | 0% |
 | 5 | Node System | Pendiente | 0% |
@@ -36,7 +36,7 @@
 |---|---|---:|
 | v0.1 | Project base structure | Completado |
 | v0.2 | Architecture documents created | Completado |
-| v0.3 | Backend skeleton | Pendiente |
+| v0.3 | Backend skeleton | Completado |
 | v0.4 | Frontend skeleton | Pendiente |
 | v1.0 | MVP funcional | Pendiente |
 
@@ -82,3 +82,7 @@
 | TASK-006 | Definir Workflow Schema | Completada |
 | TASK-007 | Definir Node Schema | Completada |
 | TASK-008 | Congelar Architecture Lock v1 | Completada |
+| TASK-009 | Crear backend skeleton | Completada |
+| TASK-010 | Probar servidor FastAPI | Completada |
+| TASK-011 | Subir proyecto a GitHub | Completada |
+| TASK-012 | Crear rutas base de API | Pendiente |
