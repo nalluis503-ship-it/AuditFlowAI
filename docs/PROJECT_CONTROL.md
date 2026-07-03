@@ -20,7 +20,7 @@
 | 0 | Environment Setup | Completada | 100% |
 | 1 | Architecture Lock | Completada | 100% |
 | 2 | Backend Base | Completada | 100% |
-| 3 | Frontend Base | Pendiente | 0% |
+| 3 | Frontend Base | En proceso | 10% |
 | 4 | Canvas Engine | Pendiente | 0% |
 | 5 | Node System | Pendiente | 0% |
 | 6 | Data Engine | Pendiente | 0% |
@@ -56,6 +56,8 @@
 3. Cada fase cerrada debe generar checkpoint en Git.
 4. Las correcciones deben limitarse al archivo o bloque afectado.
 5. Antes de programar una nueva funcion se debe identificar el motor afectado.
+6. Antes de aplicar cambios visuales importantes se debe validar el enfoque con el usuario.
+7. El diseno de interfaz debe avanzar por iteraciones hasta aprobacion visual.
 
 ---
 
@@ -64,6 +66,7 @@
 | CR | Fase | Modulo | Cambio | Estado |
 |---|---|---|---|---|
 | CR-001 | Plan maestro | Arquitectura general | Adoptar arquitectura tipo n8n con nodos propios de auditoria | Aprobado |
+| CR-002 | Phase 3 - Frontend Base | UX Builder | Cambiar sidebar limitado de nodos por constructor avanzado con biblioteca inteligente, buscador de herramientas, recomendaciones IA y panel contextual dinamico | Aprobado |
 
 ---
 
@@ -95,4 +98,5 @@
 | TASK-012 | Crear rutas base de API | Completada |
 | TASK-013 | Crear schemas base del backend | Completada |
 | TASK-014 | Cerrar Phase 2 Backend Base | Completada |
-| TASK-015 | Crear frontend skeleton | Pendiente |
+| TASK-015 | Crear frontend skeleton | En proceso |
+| TASK-016 | Disenar biblioteca inteligente de herramientas | En proceso |
