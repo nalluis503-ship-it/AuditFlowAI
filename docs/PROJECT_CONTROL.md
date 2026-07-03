@@ -5,11 +5,11 @@
 | Campo | Valor |
 |---|---|
 | Proyecto | AuditFlow AI |
-| Version actual | v0.3 |
+| Version actual | v0.3.2 |
 | Estado | En desarrollo |
 | Arquitectura | Locked v1 |
 | Fase actual | Phase 2 - Backend Base |
-| Ultimo checkpoint | v0.3 - Backend skeleton |
+| Ultimo checkpoint | v0.3.2 - Backend base API routes |
 
 ---
 
@@ -19,7 +19,7 @@
 |---|---|---:|---:|
 | 0 | Environment Setup | Completada | 100% |
 | 1 | Architecture Lock | Completada | 100% |
-| 2 | Backend Base | En proceso | 60% |
+| 2 | Backend Base | En proceso | 80% |
 | 3 | Frontend Base | Pendiente | 0% |
 | 4 | Canvas Engine | Pendiente | 0% |
 | 5 | Node System | Pendiente | 0% |
@@ -36,7 +36,10 @@
 |---|---|---:|
 | v0.1 | Project base structure | Completado |
 | v0.2 | Architecture documents created | Completado |
+| v0.2.1 | Architecture lock v1 | Completado |
 | v0.3 | Backend skeleton | Completado |
+| v0.3.1 | Project control updated after backend skeleton | Completado |
+| v0.3.2 | Backend base API routes | Completado |
 | v0.4 | Frontend skeleton | Pendiente |
 | v1.0 | MVP funcional | Pendiente |
 
@@ -85,4 +88,5 @@
 | TASK-009 | Crear backend skeleton | Completada |
 | TASK-010 | Probar servidor FastAPI | Completada |
 | TASK-011 | Subir proyecto a GitHub | Completada |
-| TASK-012 | Crear rutas base de API | Pendiente |
+| TASK-012 | Crear rutas base de API | Completada |
+| TASK-013 | Crear schemas base del backend | Pendiente |
