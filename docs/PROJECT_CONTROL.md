@@ -1,0 +1,84 @@
+# AuditFlow AI - Project Control
+
+## Estado general
+
+| Campo | Valor |
+|---|---|
+| Proyecto | AuditFlow AI |
+| Version actual | v0.2 |
+| Estado | En desarrollo |
+| Arquitectura | Draft |
+| Fase actual | Phase 1 - Architecture Lock |
+| Ultimo checkpoint | v0.1 - Project base structure |
+
+---
+
+## Fases del proyecto
+
+| Fase | Nombre | Estado | Avance |
+|---|---|---:|---:|
+| 0 | Environment Setup | Completada | 100% |
+| 1 | Architecture Lock | En proceso | 80% |
+| 2 | Backend Base | Pendiente | 0% |
+| 3 | Frontend Base | Pendiente | 0% |
+| 4 | Canvas Engine | Pendiente | 0% |
+| 5 | Node System | Pendiente | 0% |
+| 6 | Data Engine | Pendiente | 0% |
+| 7 | Audit Engine | Pendiente | 0% |
+| 8 | AI Layer | Pendiente | 0% |
+| 9 | Enterprise Features | Pendiente | 0% |
+
+---
+
+## Checkpoints
+
+| Checkpoint | Descripcion | Estado |
+|---|---|---:|
+| v0.1 | Project base structure | Completado |
+| v0.2 | Architecture documents created | En proceso |
+| v0.3 | Backend skeleton | Pendiente |
+| v0.4 | Frontend skeleton | Pendiente |
+| v1.0 | MVP funcional | Pendiente |
+
+---
+
+## Reglas de desarrollo
+
+1. No modificar codigo funcional completo por cambios pequenos.
+2. Toda modificacion estructural requiere Change Request.
+3. Cada fase cerrada debe generar checkpoint en Git.
+4. Las correcciones deben limitarse al archivo o bloque afectado.
+5. Antes de programar una nueva funcion se debe identificar el motor afectado.
+
+---
+
+## Change Requests
+
+| CR | Fase | Modulo | Cambio | Estado |
+|---|---|---|---|---|
+| CR-001 | Plan maestro | Arquitectura general | Adoptar arquitectura tipo n8n con nodos propios de auditoria | Aprobado |
+
+---
+
+## Motores oficiales
+
+| Motor | Estado |
+|---|---:|
+| Workflow Engine | Draft |
+| Node System | Draft |
+| Visual Canvas | Draft |
+| Data Engine | Draft |
+| Audit Intelligence Engine | Draft |
+| AI Engine | Draft |
+
+---
+
+## Tareas activas
+
+| ID | Tarea | Estado |
+|---|---|---:|
+| TASK-004 | Crear documentos base de arquitectura | Completada |
+| TASK-005 | Definir arquitectura general | Completada |
+| TASK-006 | Definir Workflow Schema | Completada |
+| TASK-007 | Definir Node Schema | Completada |
+| TASK-008 | Congelar Architecture Lock v1 | En proceso |
