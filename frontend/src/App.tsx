@@ -256,7 +256,7 @@ function App() {
   const [libraryView, setLibraryView] = useState<LibraryView>('categories')
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null)
-  const [nodes, , onNodesChange] = useNodesState<AuditFlowNode>(initialNodes)
+  const [nodes, setNodes, onNodesChange] = useNodesState<AuditFlowNode>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   const selectedCategory = categories.find((category) => category.id === selectedCategoryId)
@@ -305,6 +305,34 @@ function App() {
       setSelectedCategoryId(null)
       setLibraryView('categories')
     }
+  }
+
+  const getNodeVariant = () => {
+    if (selectedCategoryId === 'ai') return 'ai'
+    if (selectedCategoryId === 'documents' || selectedCategoryId === 'viewers') return 'excel'
+    return 'mysql'
+  }
+
+  const addActionNode = (action: ToolAction) => {
+    if (!selectedTool) return
+
+    const newNode: AuditFlowNode = {
+      id: selectedTool.id + '-' + Date.now(),
+      type: 'auditNode',
+      position: {
+        x: 180 + nodes.length * 42,
+        y: 180 + nodes.length * 32,
+      },
+      data: {
+        icon: selectedTool.icon,
+        title: action.name,
+        description: selectedTool.name,
+        variant: getNodeVariant(),
+      },
+    }
+
+    setNodes((currentNodes) => [...currentNodes, newNode])
+    closeLibrary()
   }
 
   const onConnect = useCallback(
@@ -478,7 +506,11 @@ function App() {
                 {libraryView === 'actions' && (
                   <div className="level-list">
                     {visibleActions.map((action) => (
-                      <button key={action.name} className="level-card action-level-card">
+                      <button
+                        key={action.name}
+                        className="level-card action-level-card"
+                        onClick={() => addActionNode(action)}
+                      >
                         <span className="level-icon">{action.icon}</span>
                         <span>
                           <strong>{action.name}</strong>
@@ -499,4 +531,6 @@ function App() {
 }
 
 export default App
+
+
 
