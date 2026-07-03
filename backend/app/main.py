@@ -1,10 +1,13 @@
 from fastapi import FastAPI
+from backend.app.api.routes import router as api_router
 
 app = FastAPI(
     title="AuditFlow AI API",
-    version="0.3.0",
+    version="0.3.2",
     description="Backend base for AuditFlow AI"
 )
+
+app.include_router(api_router)
 
 @app.get("/")
 def root():
