@@ -5,6 +5,7 @@
   type NodeProps,
 } from '@xyflow/react'
 import type { NodeDataType } from '../../data/toolCatalog'
+import './WorkflowNode.css'
 
 export type AuditNodeData = {
   icon: string
@@ -14,11 +15,14 @@ export type AuditNodeData = {
   toolId?: string
   actionId?: string
   outputType?: NodeDataType
+  onSmartConnect?: (nodeId: string, outputType: NodeDataType) => void
 }
 
 export type AuditFlowNode = Node<AuditNodeData, 'auditNode'>
 
-function AuditWorkflowNode({ data, selected }: NodeProps<AuditFlowNode>) {
+function AuditWorkflowNode({ id, data, selected }: NodeProps<AuditFlowNode>) {
+  const outputType = data.outputType ?? 'unknown'
+
   return (
     <div className={selected ? 'audit-node selected-node' : 'audit-node'}>
       <Handle
@@ -30,6 +34,19 @@ function AuditWorkflowNode({ data, selected }: NodeProps<AuditFlowNode>) {
       <div className={`audit-node-icon ${data.variant}`}>{data.icon}</div>
       <strong>{data.title}</strong>
       <small>{data.description}</small>
+
+      {data.onSmartConnect && (
+        <button
+          className="smart-node-add-button"
+          title="Sugerir siguiente acción"
+          onClick={(event) => {
+            event.stopPropagation()
+            data.onSmartConnect?.(id, outputType)
+          }}
+        >
+          +
+        </button>
+      )}
 
       <Handle
         type="source"

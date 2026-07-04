@@ -1,0 +1,23 @@
+﻿.smart-node-add-button {
+  position: absolute;
+  top: 50%;
+  right: -34px;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  border: 1px solid rgba(191, 219, 254, 0.7);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.38);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 800;
+  z-index: 8;
+}
+
+.smart-node-add-button:hover {
+  transform: translateY(-50%) scale(1.08);
+}
