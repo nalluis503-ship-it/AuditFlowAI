@@ -2,64 +2,25 @@
 import {
   Background,
   Controls,
-  Handle,
   MiniMap,
-  Position,
   ReactFlow,
   addEdge,
   useEdgesState,
   useNodesState,
   type Connection,
   type Edge,
-  type Node,
-  type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import './App.css'
 import ToolLibrary from './components/ToolLibrary/ToolLibrary'
 import type {
-  NodeDataType,
   ToolAction,
   ToolDefinition,
 } from './data/toolCatalog'
-
-type AuditNodeData = {
-  icon: string
-  title: string
-  description: string
-  variant: 'excel' | 'mysql' | 'ai'
-  toolId?: string
-  actionId?: string
-  outputType?: NodeDataType
-}
-
-type AuditFlowNode = Node<AuditNodeData, 'auditNode'>
-
-function AuditWorkflowNode({ data, selected }: NodeProps<AuditFlowNode>) {
-  return (
-    <div className={selected ? 'audit-node selected-node' : 'audit-node'}>
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="audit-handle audit-handle-left"
-      />
-
-      <div className={`audit-node-icon ${data.variant}`}>{data.icon}</div>
-      <strong>{data.title}</strong>
-      <small>{data.description}</small>
-
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="audit-handle audit-handle-right"
-      />
-    </div>
-  )
-}
-
-const nodeTypes = {
-  auditNode: AuditWorkflowNode,
-}
+import {
+  nodeTypes,
+  type AuditFlowNode,
+} from './components/WorkflowNode'
 
 const sidebarItems = [
   { icon: 'IN', title: 'Inicio', description: 'Resumen general y actividad reciente.', active: false },
@@ -239,3 +200,4 @@ function App() {
 }
 
 export default App
+
