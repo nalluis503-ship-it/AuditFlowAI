@@ -1,0 +1,208 @@
+﻿.canvas-ai-shell {
+  position: absolute;
+  inset: 50%;
+  width: min(760px, calc(100% - 64px));
+  transform: translate(-50%, -50%);
+  z-index: 35;
+  border-radius: 34px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.28), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.24), transparent 34%),
+    rgba(15, 23, 42, 0.94);
+  box-shadow: 0 34px 110px rgba(15, 23, 42, 0.58);
+  padding: 26px;
+  color: #e5e7eb;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.canvas-ai-glow {
+  position: absolute;
+  inset: -120px;
+  background:
+    radial-gradient(circle, rgba(14, 165, 233, 0.16), transparent 42%),
+    radial-gradient(circle at 70% 20%, rgba(236, 72, 153, 0.12), transparent 35%);
+  pointer-events: none;
+}
+
+.canvas-ai-header,
+.canvas-ai-command,
+.canvas-ai-quick-actions,
+.canvas-ai-recommendation {
+  position: relative;
+}
+
+.canvas-ai-header {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+
+.canvas-ai-orb {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-weight: 950;
+  background: linear-gradient(135deg, #2563eb, #7c3aed, #ec4899);
+  box-shadow: 0 22px 55px rgba(37, 99, 235, 0.38);
+}
+
+.canvas-ai-header span {
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.canvas-ai-header h2 {
+  margin: 6px 0 8px;
+  font-size: 30px;
+}
+
+.canvas-ai-header p {
+  margin: 0;
+  color: #b6c4d6;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.canvas-ai-command {
+  margin-top: 22px;
+  padding: 14px;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.canvas-ai-command textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  color: #f8fafc;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.canvas-ai-command textarea::placeholder {
+  color: #64748b;
+}
+
+.canvas-ai-command-actions,
+.canvas-ai-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.canvas-ai-primary,
+.canvas-ai-secondary,
+.canvas-ai-ghost {
+  border: 0;
+  border-radius: 16px;
+  padding: 12px 15px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.canvas-ai-primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+}
+
+.canvas-ai-secondary {
+  color: #dbeafe;
+  background: rgba(30, 41, 59, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.canvas-ai-ghost {
+  color: #bfdbfe;
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+
+.canvas-ai-quick-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.canvas-ai-quick-actions button {
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  color: #dbeafe;
+  background: rgba(30, 41, 59, 0.72);
+  border-radius: 999px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.canvas-ai-recommendation {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 12px;
+}
+
+.canvas-ai-recommendation-main,
+.canvas-ai-node-card,
+.canvas-ai-flow-card {
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.62);
+  padding: 16px;
+}
+
+.canvas-ai-recommendation-main {
+  grid-column: 1 / -1;
+}
+
+.canvas-ai-recommendation-main span,
+.canvas-ai-node-card small,
+.canvas-ai-flow-card small {
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.canvas-ai-recommendation-main h3 {
+  margin: 8px 0;
+  font-size: 20px;
+}
+
+.canvas-ai-recommendation-main p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.canvas-ai-node-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 17px;
+}
+
+.canvas-ai-flow-card ol {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #dbeafe;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.canvas-ai-result-actions {
+  grid-column: 1 / -1;
+}
