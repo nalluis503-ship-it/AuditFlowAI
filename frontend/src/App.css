@@ -1272,3 +1272,153 @@ button {
   cursor: pointer;
   font-weight: 800;
 }
+
+/* Experiment v0.5 - Learning memory dock */
+
+.learning-memory-dock {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  width: 310px;
+  z-index: 36;
+  border-radius: 24px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 42%),
+    rgba(15, 23, 42, 0.88);
+  color: #e5e7eb;
+  padding: 16px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(16px);
+}
+
+.learning-memory-dock > span {
+  display: block;
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.learning-memory-dock > strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 15px;
+}
+
+.learning-memory-dock div {
+  display: grid;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.learning-memory-dock article {
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 10px;
+}
+
+.learning-memory-dock article small {
+  display: block;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.learning-memory-dock article p {
+  margin: 5px 0 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Experiment v0.6 - Fixed workflow viewport like n8n */
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-shell {
+  width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.sidebar {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.main-nav {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.builder {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  flex: 0 0 auto;
+}
+
+.workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-panel .react-flow {
+  width: 100%;
+  height: 100%;
+}
+
+.react-flow__renderer,
+.react-flow__pane,
+.react-flow__viewport {
+  overflow: hidden;
+}
+
+.node-editor-panel,
+.ai-copilot-panel {
+  max-height: calc(100% - 36px);
+}
+
+.node-editor-body,
+.ai-copilot-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.smart-connect-floating-panel {
+  max-height: calc(100% - 48px);
+  overflow: auto;
+}

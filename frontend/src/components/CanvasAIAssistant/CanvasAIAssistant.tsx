@@ -26,12 +26,19 @@ type CanvasAIAssistantProps = {
 }
 
 const quickPrompts = [
-  'Quiero analizar bases de datos',
-  'Quiero revisar archivos Excel',
-  'Quiero validar pagos contra contratos',
-  'Quiero detectar duplicados',
-  'Quiero generar hallazgos',
-  'Quiero crear un reporte',
+  'Analizar bases de datos',
+  'Revisar archivos Excel',
+  'Validar pagos contra contratos',
+  'Detectar duplicados',
+  'Generar hallazgos',
+  'Crear reporte',
+]
+
+const aiHints = [
+  'Puedo sugerir el primer nodo',
+  'Puedo construirte un flujo completo',
+  'También puedes agregar nodos manualmente',
+  'Describe qué quieres auditar',
 ]
 
 function detectRecommendation(prompt: string): CanvasAIRecommendation {
@@ -48,7 +55,7 @@ function detectRecommendation(prompt: string): CanvasAIRecommendation {
       type: 'database-analysis',
       title: 'Análisis inteligente de base de datos',
       summary:
-        'Para iniciar con bases de datos, conviene conectar la fuente, explorar tablas y perfilar columnas antes de hacer cruces o validaciones.',
+        'Para analizar bases de datos conviene iniciar conectando la fuente, explorar tablas y perfilar columnas antes de cruzar o validar.',
       recommendedNode: 'Conectar base de datos',
       suggestedFlow: [
         'Conectar base de datos',
@@ -71,10 +78,10 @@ function detectRecommendation(prompt: string): CanvasAIRecommendation {
       type: 'payment-validation',
       title: 'Validación de pagos contra soporte',
       summary:
-        'La IA puede ayudarte a iniciar con fuentes de pago, perfilar campos clave y sugerir una validación contra contratos, facturas o proveedores.',
+        'Para validar pagos, la IA recomienda cargar o conectar las fuentes, perfilar campos clave y después ejecutar una validación contra contratos, facturas o proveedores.',
       recommendedNode: 'Carga inteligente de archivos',
       suggestedFlow: [
-        'Cargar archivos de pagos y contratos',
+        'Cargar fuentes de pagos y contratos',
         'Perfilar columnas y documentos',
         'Cruzar pagos contra contratos',
         'Generar hallazgos preliminares',
@@ -115,9 +122,9 @@ function detectRecommendation(prompt: string): CanvasAIRecommendation {
   ) {
     return {
       type: 'findings',
-      title: 'Construcción de hallazgos de auditoría',
+      title: 'Construcción de hallazgos',
       summary:
-        'Para generar hallazgos, primero se requiere una fuente de resultados o evidencia trazable.',
+        'Para generar hallazgos, primero se requiere un resultado, evidencia o fuente trazable.',
       recommendedNode: 'Generar hallazgos',
       suggestedFlow: [
         'Seleccionar resultado fuente',
@@ -176,9 +183,14 @@ function CanvasAIAssistant({
   onCreateRecommendedFlow,
   onSaveLearningNeed,
 }: CanvasAIAssistantProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [lastPrompt, setLastPrompt] = useState('')
+  const [hintIndex, setHintIndex] = useState(0)
   const [recommendation, setRecommendation] = useState<CanvasAIRecommendation | null>(null)
+  const [savedMessage, setSavedMessage] = useState('')
+
+  const activeHint = aiHints[hintIndex % aiHints.length]
 
   const placeholder = useMemo(
     () => 'Ejemplo: quiero analizar bases de datos de pagos contra contratos...',
@@ -193,112 +205,185 @@ function CanvasAIAssistant({
     const nextRecommendation = detectRecommendation(cleanPrompt)
     setLastPrompt(cleanPrompt)
     setRecommendation(nextRecommendation)
+    setSavedMessage('')
   }
 
   const useQuickPrompt = (value: string) => {
     setPrompt(value)
-    const nextRecommendation = detectRecommendation(value)
     setLastPrompt(value)
-    setRecommendation(nextRecommendation)
+    setRecommendation(detectRecommendation(value))
+    setIsOpen(true)
+    setSavedMessage('')
+  }
+
+  const saveLearning = () => {
+    if (!recommendation) return
+
+    onSaveLearningNeed(recommendation, lastPrompt)
+    setSavedMessage('Aprendizaje guardado para recomendaciones futuras.')
+  }
+
+  const rotateHint = () => {
+    setHintIndex((currentIndex) => currentIndex + 1)
   }
 
   return (
-    <section className="canvas-ai-shell" onClick={(event) => event.stopPropagation()}>
-      <div className="canvas-ai-glow" />
+    <>
+      <div className="empty-workflow-start">
+        <button
+          type="button"
+          className="manual-start-card"
+          onClick={onOpenManualLibrary}
+        >
+          <span>+</span>
+          <strong>Agregar nodo manual</strong>
+          <small>Elige directamente una herramienta si ya sabes cómo quieres iniciar.</small>
+        </button>
 
-      <div className="canvas-ai-header">
-        <div className="canvas-ai-orb">IA</div>
-
-        <div>
-          <span>Constructor inteligente</span>
-          <h2>¿Qué quieres construir o analizar?</h2>
-          <p>
-            Puedes pedir ayuda a la IA o agregar un nodo manualmente si ya sabes qué herramienta usar.
-          </p>
+        <div className="quick-start-strip">
+          {quickPrompts.slice(0, 4).map((quickPrompt) => (
+            <button
+              type="button"
+              key={quickPrompt}
+              onClick={() => useQuickPrompt(quickPrompt)}
+            >
+              {quickPrompt}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="canvas-ai-command">
-        <textarea
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder={placeholder}
-        />
+      <button
+        type="button"
+        className={isOpen ? 'ai-copilot-launcher active' : 'ai-copilot-launcher'}
+        onClick={() => setIsOpen(true)}
+        onMouseEnter={rotateHint}
+      >
+        <span className="ai-copilot-orb">IA</span>
 
-        <div className="canvas-ai-command-actions">
-          <button type="button" className="canvas-ai-primary" onClick={askAI}>
-            Preguntar a IA
-          </button>
+        <span className="ai-copilot-copy">
+          <strong>AuditFlow IA</strong>
+          <small>{activeHint}</small>
+        </span>
+      </button>
 
-          <button type="button" className="canvas-ai-secondary" onClick={onOpenManualLibrary}>
-            + Agregar nodo manual
-          </button>
-        </div>
-      </div>
+      {isOpen && (
+        <aside className="ai-copilot-panel" onClick={(event) => event.stopPropagation()}>
+          <header className="ai-copilot-header">
+            <div className="ai-copilot-orb">IA</div>
 
-      <div className="canvas-ai-quick-actions">
-        {quickPrompts.map((quickPrompt) => (
-          <button
-            type="button"
-            key={quickPrompt}
-            onClick={() => useQuickPrompt(quickPrompt)}
-          >
-            {quickPrompt}
-          </button>
-        ))}
-      </div>
+            <div>
+              <span>Copiloto del workflow</span>
+              <strong>Construye sin perderte</strong>
+              <small>Pregunta, crea nodos o usa herramientas manuales.</small>
+            </div>
 
-      {recommendation && (
-        <div className="canvas-ai-recommendation">
-          <div className="canvas-ai-recommendation-main">
-            <span>Recomendación IA</span>
-            <h3>{recommendation.title}</h3>
-            <p>{recommendation.summary}</p>
-          </div>
+            <button
+              type="button"
+              className="ai-copilot-close"
+              onClick={() => setIsOpen(false)}
+            >
+              ×
+            </button>
+          </header>
 
-          <div className="canvas-ai-node-card">
-            <small>Nodo recomendado</small>
-            <strong>{recommendation.recommendedNode}</strong>
-          </div>
+          <div className="ai-copilot-body">
+            <div className="ai-copilot-command">
+              <textarea
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder={placeholder}
+              />
 
-          <div className="canvas-ai-flow-card">
-            <small>Flujo sugerido</small>
+              <div className="ai-copilot-command-actions">
+                <button type="button" className="canvas-ai-primary" onClick={askAI}>
+                  Preguntar a IA
+                </button>
 
-            <ol>
-              {recommendation.suggestedFlow.map((step) => (
-                <li key={step}>{step}</li>
+                <button type="button" className="canvas-ai-secondary" onClick={onOpenManualLibrary}>
+                  + Agregar nodo manual
+                </button>
+              </div>
+            </div>
+
+            <div className="ai-copilot-quick-actions">
+              {quickPrompts.map((quickPrompt) => (
+                <button
+                  type="button"
+                  key={quickPrompt}
+                  onClick={() => useQuickPrompt(quickPrompt)}
+                >
+                  {quickPrompt}
+                </button>
               ))}
-            </ol>
+            </div>
+
+            {recommendation ? (
+              <div className="ai-copilot-recommendation">
+                <span>Recomendación IA</span>
+                <h3>{recommendation.title}</h3>
+                <p>{recommendation.summary}</p>
+
+                <article className="ai-recommended-node-card">
+                  <small>Nodo recomendado</small>
+                  <strong>{recommendation.recommendedNode}</strong>
+                </article>
+
+                <article className="ai-suggested-flow-card">
+                  <small>Flujo sugerido</small>
+
+                  <ol>
+                    {recommendation.suggestedFlow.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                </article>
+
+                <div className="ai-copilot-result-actions">
+                  <button
+                    type="button"
+                    className="canvas-ai-primary"
+                    onClick={() => onCreateRecommendedNode(recommendation)}
+                  >
+                    Crear primer nodo
+                  </button>
+
+                  <button
+                    type="button"
+                    className="canvas-ai-secondary"
+                    onClick={() => onCreateRecommendedFlow(recommendation)}
+                  >
+                    Crear flujo sugerido
+                  </button>
+
+                  <button
+                    type="button"
+                    className="canvas-ai-ghost"
+                    onClick={saveLearning}
+                  >
+                    Guardar aprendizaje
+                  </button>
+                </div>
+
+                {savedMessage && (
+                  <div className="ai-learning-saved">
+                    {savedMessage}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="ai-copilot-empty-state">
+                <strong>Estoy listo para ayudarte.</strong>
+                <p>
+                  Describe qué quieres auditar o usa una sugerencia rápida. Si ya sabes qué hacer,
+                  agrega el nodo manualmente.
+                </p>
+              </div>
+            )}
           </div>
-
-          <div className="canvas-ai-result-actions">
-            <button
-              type="button"
-              className="canvas-ai-primary"
-              onClick={() => onCreateRecommendedNode(recommendation)}
-            >
-              Crear primer nodo
-            </button>
-
-            <button
-              type="button"
-              className="canvas-ai-secondary"
-              onClick={() => onCreateRecommendedFlow(recommendation)}
-            >
-              Crear flujo sugerido
-            </button>
-
-            <button
-              type="button"
-              className="canvas-ai-ghost"
-              onClick={() => onSaveLearningNeed(recommendation, lastPrompt)}
-            >
-              Guardar aprendizaje
-            </button>
-          </div>
-        </div>
+        </aside>
       )}
-    </section>
+    </>
   )
 }
 
