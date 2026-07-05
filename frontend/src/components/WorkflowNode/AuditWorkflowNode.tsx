@@ -56,6 +56,24 @@ const statusLabel: Record<NodeExecutionStatus, string> = {
   error: 'Error',
 }
 
+const statusIcon: Record<NodeExecutionStatus, string> = {
+  idle: '○',
+  pending: '…',
+  running: '↻',
+  success: '✓',
+  warning: '!',
+  error: '×',
+}
+
+const statusHint: Record<NodeExecutionStatus, string> = {
+  idle: 'Listo para configurar',
+  pending: 'Esperando ejecución',
+  running: 'Procesando nodo',
+  success: 'Ejecución correcta',
+  warning: 'Requiere atención',
+  error: 'Falló la ejecución',
+}
+
 function AuditWorkflowNode({
   id,
   data,
@@ -66,6 +84,7 @@ function AuditWorkflowNode({
 }: AuditWorkflowNodeProps) {
   const outputType = data.outputType
   const status = data.status ?? 'idle'
+  const filesCount = data.files?.length ?? 0
   const canSuggestNextStep = Boolean(outputType && onSmartConnect)
 
   return (
@@ -76,6 +95,8 @@ function AuditWorkflowNode({
         onOpenNode?.(id)
       }}
     >
+      <div className="audit-node-state-glow" />
+
       <Handle
         type="target"
         position={Position.Left}
@@ -85,6 +106,7 @@ function AuditWorkflowNode({
       <div className="node-action-bar">
         {onOpenNode && (
           <button
+            type="button"
             className="node-icon-action"
             title="Abrir nodo"
             onClick={(event) => {
@@ -98,6 +120,7 @@ function AuditWorkflowNode({
 
         {onDeleteNode && (
           <button
+            type="button"
             className="node-icon-action danger"
             title="Eliminar nodo"
             onClick={(event) => {
@@ -110,17 +133,47 @@ function AuditWorkflowNode({
         )}
       </div>
 
-      <div className={`audit-node-icon ${data.variant}`}>{data.icon}</div>
-      <strong>{data.title}</strong>
-      <small>{data.summary ?? data.description}</small>
+      <header className="audit-node-header">
+        <div className={`audit-node-icon ${data.variant}`}>{data.icon}</div>
 
-      <div className="node-status-row">
+        <div className="audit-node-heading">
+          <span>{data.actionId ?? data.toolId ?? 'AuditFlow'}</span>
+          <strong>{data.title}</strong>
+        </div>
+
+        <div className={`node-state-icon ${status}`} title={statusHint[status]}>
+          {statusIcon[status]}
+        </div>
+      </header>
+
+      <p className="audit-node-summary">
+        {data.summary ?? data.description}
+      </p>
+
+      <div className="audit-node-meta">
+        {outputType && <span>{outputType}</span>}
+
+        {filesCount > 0 && (
+          <span>
+            {filesCount} archivo{filesCount === 1 ? '' : 's'}
+          </span>
+        )}
+
+        {data.resultSummary && data.resultSummary.length > 0 && (
+          <span>
+            {data.resultSummary.length} resultado{data.resultSummary.length === 1 ? '' : 's'}
+          </span>
+        )}
+      </div>
+
+      <div className={`node-status-row ${status}`}>
         <span className={`node-status-dot ${status}`} />
         <span>{statusLabel[status]}</span>
       </div>
 
       {canSuggestNextStep && outputType && (
         <button
+          type="button"
           className="smart-node-add-button"
           title="Sugerir siguiente acción compatible"
           onClick={(event) => {
