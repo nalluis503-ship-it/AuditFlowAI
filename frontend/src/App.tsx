@@ -12,6 +12,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import './App.css'
+import { applyExecutionResultToNodeData, executeWorkflowNode, sortNodesForExecution } from './engine/workflowExecutionEngine'
 import ToolLibrary from './components/ToolLibrary/ToolLibrary'
 import SmartConnectMenu from './components/SmartConnect/SmartConnectMenu'
 import NodeEditor from './components/NodeEditor'
@@ -425,6 +426,62 @@ function App() {
   const showEmptyCanvasAssistant =
     !isLibraryOpen && !smartConnectContext && !openedNode && nodes.length === 0
 
+
+  const sleep = (milliseconds: number) =>
+    new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+
+  const runWorkflow = async () => {
+    if (nodes.length === 0) return
+
+    const orderedNodes = sortNodesForExecution(nodes)
+    const completedNodeIds = new Set<string>()
+
+    for (const workflowNode of orderedNodes) {
+      setNodes((currentNodes) =>
+        currentNodes.map((currentNode) =>
+          currentNode.id === workflowNode.id
+            ? {
+                ...currentNode,
+                data: {
+                  ...currentNode.data,
+                  status: 'running',
+                  summary: 'Ejecutando...',
+                  resultSummary: ['Nodo en ejecución visual.'],
+                },
+              }
+            : currentNode,
+        ),
+      )
+
+      await sleep(650)
+
+      const currentSnapshotNode =
+        nodes.find((node) => node.id === workflowNode.id) ?? workflowNode
+
+      const result = executeWorkflowNode(currentSnapshotNode, {
+        nodes: orderedNodes,
+        edges,
+        completedNodeIds,
+      })
+
+      setNodes((currentNodes) =>
+        currentNodes.map((currentNode) =>
+          currentNode.id === workflowNode.id
+            ? {
+                ...currentNode,
+                data: applyExecutionResultToNodeData(currentNode.data, result),
+              }
+            : currentNode,
+        ),
+      )
+
+      if (result.status === 'success') {
+        completedNodeIds.add(workflowNode.id)
+      }
+
+      await sleep(220)
+    }
+  }
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -468,7 +525,7 @@ function App() {
 
           <div className="top-actions">
             <button className="ghost-button">Guardar</button>
-            <button className="ghost-button">Ejecutar</button>
+            <button className="ghost-button" type="button" onClick={runWorkflow}>Ejecutar</button>
             <button className="primary-button" onClick={openLibrary}>
               + Agregar herramienta
             </button>
@@ -573,3 +630,7 @@ function App() {
 }
 
 export default App
+
+
+
+
