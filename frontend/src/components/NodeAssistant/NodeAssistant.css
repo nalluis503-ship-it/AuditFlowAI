@@ -1,0 +1,108 @@
+﻿.node-assistant {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.26), transparent 42%),
+    rgba(15, 23, 42, 0.78);
+}
+
+.node-assistant-orb {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #ffffff;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  box-shadow: 0 18px 45px rgba(124, 58, 237, 0.34);
+}
+
+.node-assistant-content {
+  display: grid;
+  gap: 12px;
+}
+
+.node-assistant-content header strong {
+  display: block;
+  color: #f8fafc;
+}
+
+.node-assistant-content header small {
+  display: block;
+  color: #a5b4fc;
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.node-assistant-messages {
+  max-height: 150px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.node-assistant-messages p {
+  margin: 0;
+  padding: 10px;
+  border-radius: 14px;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.node-assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.node-assistant-suggestions button {
+  border: 1px solid rgba(165, 180, 252, 0.26);
+  color: #dbeafe;
+  background: rgba(30, 41, 59, 0.72);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.node-assistant-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.node-assistant-input input {
+  min-width: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #e5e7eb;
+  background: rgba(15, 23, 42, 0.82);
+  padding: 11px 12px;
+  outline: none;
+}
+
+.node-assistant-input button,
+.node-assistant-primary {
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.node-assistant-input button {
+  padding: 0 14px;
+}
+
+.node-assistant-primary {
+  padding: 12px 14px;
+}
