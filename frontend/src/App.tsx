@@ -1,4 +1,4 @@
-﻿import { useCallback, useState } from 'react'
+﻿import { useCallback, useMemo, useState } from 'react'
 import {
   Background,
   Controls,
@@ -13,13 +13,17 @@ import {
 import '@xyflow/react/dist/style.css'
 import './App.css'
 import ToolLibrary from './components/ToolLibrary/ToolLibrary'
+import SmartConnectMenu from './components/SmartConnect/SmartConnectMenu'
+import NodeEditor from './components/NodeEditor'
 import type {
+  NodeDataType,
   ToolAction,
   ToolDefinition,
 } from './data/toolCatalog'
 import {
-  nodeTypes,
+  createWorkflowNodeTypes,
   type AuditFlowNode,
+  type NodeFileMeta,
 } from './components/WorkflowNode'
 
 const sidebarItems = [
@@ -38,6 +42,11 @@ const initialNodes: AuditFlowNode[] = []
 
 const initialEdges: Edge[] = []
 
+type SmartConnectContext = {
+  nodeId: string
+  outputType: NodeDataType
+}
+
 function getNodeVariant(tool: ToolDefinition): 'excel' | 'mysql' | 'ai' {
   if (tool.categoryId === 'ai') return 'ai'
 
@@ -55,16 +64,78 @@ function getNodeVariant(tool: ToolDefinition): 'excel' | 'mysql' | 'ai' {
 
 function App() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false)
+  const [smartConnectContext, setSmartConnectContext] = useState<SmartConnectContext | null>(null)
+  const [openNodeId, setOpenNodeId] = useState<string | null>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState<AuditFlowNode>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
+  const closeSmartConnect = useCallback(() => {
+    setSmartConnectContext(null)
+  }, [])
+
+  const closeNodeEditor = useCallback(() => {
+    setOpenNodeId(null)
+  }, [])
+
+  const openSmartConnect = useCallback((nodeId: string, outputType: NodeDataType) => {
+    setIsLibraryOpen(false)
+    setOpenNodeId(null)
+    setSmartConnectContext({
+      nodeId,
+      outputType,
+    })
+  }, [])
+
+  const openNodeEditor = useCallback((nodeId: string) => {
+    setIsLibraryOpen(false)
+    setSmartConnectContext(null)
+    setOpenNodeId(nodeId)
+  }, [])
+
+  const deleteNode = useCallback((nodeId: string) => {
+    setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId))
+    setEdges((currentEdges) =>
+      currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
+    )
+
+    setSmartConnectContext((currentContext) =>
+      currentContext?.nodeId === nodeId ? null : currentContext,
+    )
+
+    setOpenNodeId((currentNodeId) => (currentNodeId === nodeId ? null : currentNodeId))
+  }, [setEdges, setNodes])
+
+  const nodeTypes = useMemo(
+    () =>
+      createWorkflowNodeTypes({
+        onSmartConnect: openSmartConnect,
+        onOpenNode: openNodeEditor,
+        onDeleteNode: deleteNode,
+      }),
+    [deleteNode, openNodeEditor, openSmartConnect],
+  )
+
   const openLibrary = () => {
+    closeSmartConnect()
+    closeNodeEditor()
     setIsLibraryOpen(true)
   }
 
   const closeLibrary = () => {
     setIsLibraryOpen(false)
   }
+
+  const createNodeData = (tool: ToolDefinition, action: ToolAction) => ({
+    icon: tool.icon,
+    title: action.name,
+    description: tool.name,
+    variant: getNodeVariant(tool),
+    toolId: tool.id,
+    actionId: action.id,
+    outputType: action.outputType,
+    status: 'idle' as const,
+    summary: action.name,
+  })
 
   const addToolNode = (tool: ToolDefinition, action: ToolAction) => {
     const newNode: AuditFlowNode = {
@@ -74,18 +145,76 @@ function App() {
         x: 180 + nodes.length * 52,
         y: 180 + nodes.length * 36,
       },
-      data: {
-        icon: tool.icon,
-        title: action.name,
-        description: tool.name,
-        variant: getNodeVariant(tool),
-        toolId: tool.id,
-        actionId: action.id,
-        outputType: action.outputType,
-      },
+      data: createNodeData(tool, action),
     }
 
     setNodes((currentNodes) => [...currentNodes, newNode])
+  }
+
+  const handleAttachFiles = (nodeId: string, files: NodeFileMeta[]) => {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (node.id !== nodeId) return node
+
+        const previousFiles = node.data.files ?? []
+        const nextFiles = [...previousFiles, ...files]
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            files: nextFiles,
+            status: 'success',
+            summary: `${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} cargado${nextFiles.length === 1 ? '' : 's'}`,
+            resultSummary: [
+              `${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} disponible${nextFiles.length === 1 ? '' : 's'} para análisis.`,
+              'Pendiente perfilar contenido para generar recomendaciones específicas.',
+            ],
+          },
+        }
+      }),
+    )
+  }
+
+  const suggestNextNodeFromEditor = (nodeId: string) => {
+    const node = nodes.find((currentNode) => currentNode.id === nodeId)
+
+    if (!node) return
+
+    openSmartConnect(node.id, node.data.outputType ?? 'unknown')
+  }
+
+  const addSmartConnectedNode = (tool: ToolDefinition, action: ToolAction) => {
+    if (!smartConnectContext) return
+
+    const sourceNode = nodes.find((node) => node.id === smartConnectContext.nodeId)
+    const newNodeId = `${tool.id}-${action.id}-${Date.now()}`
+
+    const newNode: AuditFlowNode = {
+      id: newNodeId,
+      type: 'auditNode',
+      position: {
+        x: sourceNode ? sourceNode.position.x + 320 : 320,
+        y: sourceNode ? sourceNode.position.y : 220,
+      },
+      data: createNodeData(tool, action),
+    }
+
+    setNodes((currentNodes) => [...currentNodes, newNode])
+
+    setEdges((currentEdges) =>
+      addEdge(
+        {
+          id: `${smartConnectContext.nodeId}-${newNodeId}`,
+          source: smartConnectContext.nodeId,
+          target: newNodeId,
+          animated: true,
+        },
+        currentEdges,
+      ),
+    )
+
+    closeSmartConnect()
   }
 
   const onConnect = useCallback(
@@ -93,6 +222,10 @@ function App() {
       setEdges((currentEdges) => addEdge({ ...connection, animated: true }, currentEdges)),
     [setEdges],
   )
+
+  const openedNode = openNodeId
+    ? nodes.find((node) => node.id === openNodeId)
+    : null
 
   return (
     <div className="app-shell">
@@ -144,7 +277,14 @@ function App() {
           </div>
         </header>
 
-        <section className="workspace" onClick={() => isLibraryOpen && closeLibrary()}>
+        <section
+          className="workspace"
+          onClick={() => {
+            if (isLibraryOpen) closeLibrary()
+            if (smartConnectContext) closeSmartConnect()
+            if (openedNode) closeNodeEditor()
+          }}
+        >
           <div className="canvas-panel">
             <ReactFlow
               nodes={nodes}
@@ -160,7 +300,7 @@ function App() {
               <MiniMap />
             </ReactFlow>
 
-            {!isLibraryOpen && nodes.length === 0 && (
+            {!isLibraryOpen && !smartConnectContext && !openedNode && nodes.length === 0 && (
               <button
                 className="empty-workflow-card"
                 onClick={(event) => {
@@ -170,11 +310,11 @@ function App() {
               >
                 <span>+</span>
                 <strong>Agregar primer nodo</strong>
-                <small>Elige lo que quieres construir o analizar</small>
+                <small>Elige una herramienta o pídele a la IA que recomiende cómo iniciar</small>
               </button>
             )}
 
-            {!isLibraryOpen && nodes.length > 0 && (
+            {!isLibraryOpen && !smartConnectContext && !openedNode && nodes.length > 0 && (
               <button
                 className="floating-add-tool"
                 onClick={(event) => {
@@ -184,6 +324,28 @@ function App() {
               >
                 + Agregar herramienta
               </button>
+            )}
+
+            {smartConnectContext && (
+              <div
+                className="smart-connect-floating-panel"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <SmartConnectMenu
+                  outputType={smartConnectContext.outputType}
+                  onSelectSuggestion={addSmartConnectedNode}
+                  onClose={closeSmartConnect}
+                />
+              </div>
+            )}
+
+            {openedNode && (
+              <NodeEditor
+                node={openedNode}
+                onClose={closeNodeEditor}
+                onAttachFiles={handleAttachFiles}
+                onSuggestNextNode={suggestNextNodeFromEditor}
+              />
             )}
 
             {isLibraryOpen && (
@@ -200,4 +362,3 @@ function App() {
 }
 
 export default App
-

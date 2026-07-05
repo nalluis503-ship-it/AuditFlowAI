@@ -1122,3 +1122,153 @@ button {
   font-size: 14px;
   line-height: 1.4;
 }
+
+.smart-connect-floating-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 80;
+}
+
+.smart-connect-floating-panel .smart-connect-menu {
+  position: static;
+}
+
+/* CR-012: Smart Connect and Node Editor */
+
+.smart-connect-floating-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 80;
+}
+
+.smart-connect-floating-panel .smart-connect-menu {
+  position: static;
+}
+
+.node-editor-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 380px;
+  z-index: 86;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 42%),
+    rgba(15, 23, 42, 0.94);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.44);
+  color: #e5e7eb;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+}
+
+.node-editor-header {
+  display: grid;
+  grid-template-columns: 46px 1fr 32px;
+  gap: 14px;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.node-editor-header strong {
+  display: block;
+  font-size: 15px;
+}
+
+.node-editor-header small {
+  display: block;
+  color: #94a3b8;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.node-editor-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.node-editor-icon.excel {
+  background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.node-editor-icon.mysql {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+}
+
+.node-editor-icon.ai {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+}
+
+.node-editor-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.75);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.node-editor-body {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.node-editor-field {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.node-editor-field span {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.node-editor-field strong {
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+.context-ai-card {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.08));
+}
+
+.context-ai-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.context-ai-card p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.node-editor-primary {
+  border: 0;
+  border-radius: 16px;
+  padding: 13px 16px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  cursor: pointer;
+  font-weight: 800;
+}
