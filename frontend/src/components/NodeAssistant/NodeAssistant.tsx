@@ -45,7 +45,7 @@ function NodeAssistant({
       <div className="node-assistant-content">
         <header>
           <strong>IA contextual del nodo</strong>
-          <small>Activa recomendaciones según esta acción</small>
+          <small>Recomendaciones según la acción actual</small>
         </header>
 
         <div className="node-assistant-messages">
