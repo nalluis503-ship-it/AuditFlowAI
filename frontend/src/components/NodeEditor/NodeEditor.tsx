@@ -16,6 +16,7 @@ type NodeEditorProps = {
   onClose: () => void
   onAttachFiles: (nodeId: string, files: NodeFileMeta[]) => void
   onSuggestNextNode: (nodeId: string) => void
+  onRunNode: (nodeId: string) => void
 }
 
 type EditorTab = 'config' | 'execution' | 'results' | 'trace' | 'ai'
@@ -27,6 +28,24 @@ const statusLabel: Record<NodeExecutionStatus, string> = {
   success: 'Correcto',
   warning: 'Requiere revisión',
   error: 'Error',
+}
+
+const statusIcon: Record<NodeExecutionStatus, string> = {
+  idle: '○',
+  pending: '…',
+  running: '↻',
+  success: '✓',
+  warning: '!',
+  error: '×',
+}
+
+const statusDescription: Record<NodeExecutionStatus, string> = {
+  idle: 'El nodo está listo para configurarse o ejecutarse.',
+  pending: 'El nodo está esperando ejecución.',
+  running: 'El nodo está procesando la acción configurada.',
+  success: 'El nodo terminó correctamente y generó salida.',
+  warning: 'El nodo requiere atención antes de continuar.',
+  error: 'El nodo falló durante la ejecución.',
 }
 
 const tabLabels: Record<EditorTab, string> = {
@@ -130,6 +149,7 @@ function NodeEditor({
   onClose,
   onAttachFiles,
   onSuggestNextNode,
+  onRunNode,
 }: NodeEditorProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>('config')
   const status = node.data.status ?? 'idle'
@@ -147,18 +167,31 @@ function NodeEditor({
   const hasResults = files.length > 0 || resultSummary.length > 0 || status === 'success'
 
   return (
-    <aside className="node-editor-panel" onClick={(event) => event.stopPropagation()}>
+    <aside
+      className={`node-editor-panel node-editor-status-${status}`}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="node-editor-animated-border" />
+
       <header className="node-editor-header">
         <div className={`node-editor-icon ${node.data.variant}`}>
           {node.data.icon}
         </div>
 
-        <div>
-          <strong>{experience.title}</strong>
+        <div className="node-editor-title-block">
+          <div className="node-editor-title-row">
+            <strong>{experience.title}</strong>
+
+            <span className={`node-editor-state-badge ${status}`}>
+              {statusIcon[status]} {statusLabel[status]}
+            </span>
+          </div>
+
           <small>{node.data.title}</small>
         </div>
 
         <button
+          type="button"
           className="node-editor-close"
           onClick={onClose}
           title="Cerrar"
@@ -166,6 +199,17 @@ function NodeEditor({
           ×
         </button>
       </header>
+
+      <div className={`node-editor-live-state ${status}`}>
+        <div className="node-editor-live-orb">
+          {statusIcon[status]}
+        </div>
+
+        <div>
+          <strong>{statusLabel[status]}</strong>
+          <small>{statusDescription[status]}</small>
+        </div>
+      </div>
 
       <nav className="node-editor-tabs">
         {(Object.keys(tabLabels) as EditorTab[]).map((tab) => (
@@ -218,8 +262,9 @@ function NodeEditor({
 
         {activeTab === 'execution' && (
           <div className="node-editor-tab-content">
-            <div className="node-editor-status-card">
+            <div className={`node-editor-status-card ${status}`}>
               <span className={`node-editor-status-dot ${status}`} />
+
               <div>
                 <small>Estado del nodo</small>
                 <strong>{statusLabel[status]}</strong>
@@ -252,8 +297,13 @@ function NodeEditor({
               </article>
             </div>
 
-            <button className="node-editor-primary" type="button">
-              Ejecutar este nodo
+            <button
+              className="node-editor-primary"
+              type="button"
+              disabled={status === 'running'}
+              onClick={() => onRunNode(node.id)}
+            >
+              {status === 'running' ? 'Ejecutando...' : 'Ejecutar este nodo'}
             </button>
           </div>
         )}

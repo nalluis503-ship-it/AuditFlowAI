@@ -482,6 +482,56 @@ function App() {
       await sleep(220)
     }
   }
+
+  const runSingleNode = async (nodeId: string) => {
+    const targetNode = nodes.find((node) => node.id === nodeId)
+
+    if (!targetNode) return
+
+    setNodes((currentNodes) =>
+      currentNodes.map((currentNode) =>
+        currentNode.id === nodeId
+          ? {
+              ...currentNode,
+              data: {
+                ...currentNode.data,
+                status: 'running',
+                summary: 'Ejecutando...',
+                resultSummary: ['Nodo en ejecución visual.'],
+              },
+            }
+          : currentNode,
+      ),
+    )
+
+    await sleep(650)
+
+    const completedNodeIds = new Set(
+      nodes
+        .filter((node) => node.id !== nodeId && node.data.status === 'success')
+        .map((node) => node.id),
+    )
+
+    const currentSnapshotNode =
+      nodes.find((node) => node.id === nodeId) ?? targetNode
+
+    const result = executeWorkflowNode(currentSnapshotNode, {
+      nodes,
+      edges,
+      completedNodeIds,
+    })
+
+    setNodes((currentNodes) =>
+      currentNodes.map((currentNode) =>
+        currentNode.id === nodeId
+          ? {
+              ...currentNode,
+              data: applyExecutionResultToNodeData(currentNode.data, result),
+            }
+          : currentNode,
+      ),
+    )
+  }
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -613,6 +663,7 @@ function App() {
                 onClose={closeNodeEditor}
                 onAttachFiles={handleAttachFiles}
                 onSuggestNextNode={suggestNextNodeFromEditor}
+                onRunNode={runSingleNode}
               />
             )}
 
@@ -630,6 +681,7 @@ function App() {
 }
 
 export default App
+
 
 
 

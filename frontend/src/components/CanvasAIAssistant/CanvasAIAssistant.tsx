@@ -1,4 +1,11 @@
 ﻿import { useMemo, useState } from 'react'
+import {
+  analyzeAuditIntent,
+  orchestrateWorkspace,
+  saveLearningBacklogItem,
+  type AuditIntent,
+  type WorkspaceRecommendation,
+} from '../../intelligence'
 import './CanvasAIAssistant.css'
 
 export type CanvasAIRecommendationType =
@@ -35,10 +42,10 @@ const quickPrompts = [
 ]
 
 const aiHints = [
-  'Puedo sugerir el primer nodo',
-  'Puedo construirte un flujo completo',
-  'También puedes agregar nodos manualmente',
-  'Describe qué quieres auditar',
+  'Puedo detectar intención auditora',
+  'Puedo revisar capacidades disponibles',
+  'Puedo registrar brechas para desarrollo',
+  'Puedo sugerir el espacio de trabajo adecuado',
 ]
 
 function detectRecommendation(prompt: string): CanvasAIRecommendation {
@@ -188,32 +195,46 @@ function CanvasAIAssistant({
   const [lastPrompt, setLastPrompt] = useState('')
   const [hintIndex, setHintIndex] = useState(0)
   const [recommendation, setRecommendation] = useState<CanvasAIRecommendation | null>(null)
+  const [auditIntent, setAuditIntent] = useState<AuditIntent | null>(null)
+  const [workspaceRecommendation, setWorkspaceRecommendation] =
+    useState<WorkspaceRecommendation | null>(null)
   const [savedMessage, setSavedMessage] = useState('')
 
   const activeHint = aiHints[hintIndex % aiHints.length]
 
   const placeholder = useMemo(
-    () => 'Ejemplo: quiero analizar bases de datos de pagos contra contratos...',
+    () => 'Ejemplo: quiero validar pagos contra contratos con dos bases de Excel...',
     [],
   )
 
-  const askAI = () => {
-    const cleanPrompt = prompt.trim()
+  const processPrompt = (value: string) => {
+    const cleanPrompt = value.trim()
 
     if (!cleanPrompt) return
 
     const nextRecommendation = detectRecommendation(cleanPrompt)
+    const nextIntent = analyzeAuditIntent(cleanPrompt)
+    const nextWorkspaceRecommendation = orchestrateWorkspace(nextIntent)
+
     setLastPrompt(cleanPrompt)
     setRecommendation(nextRecommendation)
+    setAuditIntent(nextIntent)
+    setWorkspaceRecommendation(nextWorkspaceRecommendation)
     setSavedMessage('')
+
+    if (nextWorkspaceRecommendation.missingCapabilities.length > 0) {
+      saveLearningBacklogItem(nextIntent, nextWorkspaceRecommendation)
+    }
+  }
+
+  const askAI = () => {
+    processPrompt(prompt)
   }
 
   const useQuickPrompt = (value: string) => {
     setPrompt(value)
-    setLastPrompt(value)
-    setRecommendation(detectRecommendation(value))
     setIsOpen(true)
-    setSavedMessage('')
+    processPrompt(value)
   }
 
   const saveLearning = () => {
@@ -273,9 +294,9 @@ function CanvasAIAssistant({
             <div className="ai-copilot-orb">IA</div>
 
             <div>
-              <span>Copiloto del workflow</span>
-              <strong>Construye sin perderte</strong>
-              <small>Pregunta, crea nodos o usa herramientas manuales.</small>
+              <span>Copiloto inteligente</span>
+              <strong>Entiende intención, capacidades y brechas</strong>
+              <small>No finge capacidades: detecta lo que existe y lo que falta.</small>
             </div>
 
             <button
@@ -297,7 +318,7 @@ function CanvasAIAssistant({
 
               <div className="ai-copilot-command-actions">
                 <button type="button" className="canvas-ai-primary" onClick={askAI}>
-                  Preguntar a IA
+                  Analizar intención
                 </button>
 
                 <button type="button" className="canvas-ai-secondary" onClick={onOpenManualLibrary}>
@@ -317,6 +338,65 @@ function CanvasAIAssistant({
                 </button>
               ))}
             </div>
+
+            {auditIntent && workspaceRecommendation && (
+              <section className="ai-intelligence-card">
+                <span>Núcleo inteligente</span>
+                <h3>{workspaceRecommendation.workspaceTitle}</h3>
+                <p>{workspaceRecommendation.explanation}</p>
+
+                <div className="ai-intelligence-grid">
+                  <article>
+                    <small>Intención detectada</small>
+                    <strong>{auditIntent.title}</strong>
+                    <em>{Math.round(auditIntent.confidence * 100)}% confianza</em>
+                  </article>
+
+                  <article>
+                    <small>Vista recomendada</small>
+                    <strong>{workspaceRecommendation.workspaceMode}</strong>
+                    <em>{workspaceRecommendation.primaryAction}</em>
+                  </article>
+                </div>
+
+                {workspaceRecommendation.availableCapabilities.length > 0 && (
+                  <div className="ai-capability-list available">
+                    <strong>Disponible</strong>
+
+                    {workspaceRecommendation.availableCapabilities.map((capability) => (
+                      <small key={capability}>✓ {capability}</small>
+                    ))}
+                  </div>
+                )}
+
+                {workspaceRecommendation.simulatedCapabilities.length > 0 && (
+                  <div className="ai-capability-list simulated">
+                    <strong>Simulado</strong>
+
+                    {workspaceRecommendation.simulatedCapabilities.map((capability) => (
+                      <small key={capability}>◐ {capability}</small>
+                    ))}
+                  </div>
+                )}
+
+                {workspaceRecommendation.missingCapabilities.length > 0 && (
+                  <div className="ai-capability-list missing">
+                    <strong>Brechas detectadas</strong>
+
+                    {workspaceRecommendation.missingCapabilities.map((capability) => (
+                      <small key={capability}>× {capability}</small>
+                    ))}
+                  </div>
+                )}
+
+                {workspaceRecommendation.developerMessage && (
+                  <div className="ai-developer-message">
+                    <strong>Mensaje para desarrollo</strong>
+                    <p>{workspaceRecommendation.developerMessage}</p>
+                  </div>
+                )}
+              </section>
+            )}
 
             {recommendation ? (
               <div className="ai-copilot-recommendation">
@@ -373,10 +453,10 @@ function CanvasAIAssistant({
               </div>
             ) : (
               <div className="ai-copilot-empty-state">
-                <strong>Estoy listo para ayudarte.</strong>
+                <strong>Estoy listo para interpretar la solicitud del auditor.</strong>
                 <p>
-                  Describe qué quieres auditar o usa una sugerencia rápida. Si ya sabes qué hacer,
-                  agrega el nodo manualmente.
+                  Describe qué quieres auditar. Revisaré la intención, las capacidades disponibles,
+                  las brechas técnicas y el espacio de trabajo recomendado.
                 </p>
               </div>
             )}
