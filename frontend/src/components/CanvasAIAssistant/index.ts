@@ -1,5 +1,6 @@
-﻿export {
-  default,
-  type CanvasAIRecommendation,
-  type CanvasAIRecommendationType,
-} from './CanvasAIAssistant'
+﻿export { default } from './CanvasAIAssistant'
+
+export type {
+  CanvasAIRecommendation,
+  CanvasAIRecommendationType,
+} from '../../intelligence'

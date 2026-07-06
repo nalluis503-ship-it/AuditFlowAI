@@ -423,8 +423,8 @@ function App() {
     ? nodes.find((node) => node.id === openNodeId)
     : null
 
-  const showEmptyCanvasAssistant =
-    !isLibraryOpen && !smartConnectContext && !openedNode && nodes.length === 0
+  const showCanvasAssistant =
+    !isLibraryOpen && !smartConnectContext && !openedNode
 
 
   const sleep = (milliseconds: number) =>
@@ -605,9 +605,10 @@ function App() {
               <MiniMap />
             </ReactFlow>
 
-            {showEmptyCanvasAssistant && (
+            {showCanvasAssistant && (
               <>
                 <CanvasAIAssistant
+                  showStartActions={nodes.length === 0}
                   onOpenManualLibrary={openLibrary}
                   onCreateRecommendedNode={addRecommendedNode}
                   onCreateRecommendedFlow={addRecommendedFlow}
@@ -681,6 +682,7 @@ function App() {
 }
 
 export default App
+
 
 
 

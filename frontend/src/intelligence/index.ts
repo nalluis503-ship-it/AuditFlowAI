@@ -23,3 +23,9 @@ export {
   calculatePriority,
   type LearningBacklogItem,
 } from './learningBacklog'
+
+export {
+  detectCanvasRecommendation,
+  type CanvasAIRecommendation,
+  type CanvasAIRecommendationType,
+} from './canvasRecommendationEngine'
