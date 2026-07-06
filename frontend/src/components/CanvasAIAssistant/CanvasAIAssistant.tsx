@@ -50,6 +50,7 @@ function CanvasAIAssistant({
   const [workspaceRecommendation, setWorkspaceRecommendation] =
     useState<WorkspaceRecommendation | null>(null)
   const [savedMessage, setSavedMessage] = useState('')
+  const [showTechnicalDetail, setShowTechnicalDetail] = useState(false)
 
   const activeHint = aiHints[hintIndex % aiHints.length]
 
@@ -72,6 +73,7 @@ function CanvasAIAssistant({
     setAuditIntent(nextIntent)
     setWorkspaceRecommendation(nextWorkspaceRecommendation)
     setSavedMessage('')
+    setShowTechnicalDetail(false)
 
     if (nextWorkspaceRecommendation.missingCapabilities.length > 0) {
       saveLearningBacklogItem(nextIntent, nextWorkspaceRecommendation)
@@ -98,6 +100,11 @@ function CanvasAIAssistant({
   const rotateHint = () => {
     setHintIndex((currentIndex) => currentIndex + 1)
   }
+
+  const hasTechnicalDetail = Boolean(auditIntent && workspaceRecommendation)
+  const missingCapabilities = workspaceRecommendation?.missingCapabilities ?? []
+  const simulatedCapabilities = workspaceRecommendation?.simulatedCapabilities ?? []
+  const availableCapabilities = workspaceRecommendation?.availableCapabilities ?? []
 
   return (
     <>
@@ -148,8 +155,8 @@ function CanvasAIAssistant({
 
             <div>
               <span>Copiloto inteligente</span>
-              <strong>Entiende intención, capacidades y brechas</strong>
-              <small>No finge capacidades: detecta lo que existe y lo que falta.</small>
+              <strong>Asistente de auditoría</strong>
+              <small>Convierte tu solicitud en flujo, brechas y siguiente acción.</small>
             </div>
 
             <button
@@ -171,7 +178,7 @@ function CanvasAIAssistant({
 
               <div className="ai-copilot-command-actions">
                 <button type="button" className="canvas-ai-primary" onClick={askAI}>
-                  Analizar intención
+                  Analizar solicitud
                 </button>
 
                 <button type="button" className="canvas-ai-secondary" onClick={onOpenManualLibrary}>
@@ -192,77 +199,35 @@ function CanvasAIAssistant({
               ))}
             </div>
 
-            {auditIntent && workspaceRecommendation && (
-              <section className="ai-intelligence-card">
-                <span>Núcleo inteligente</span>
-                <h3>{workspaceRecommendation.workspaceTitle}</h3>
-                <p>{workspaceRecommendation.explanation}</p>
+            {auditIntent && workspaceRecommendation && recommendation ? (
+              <section className="ai-auditor-summary-card">
+                <span>Qué entendí</span>
+                <h3>{auditIntent.title}</h3>
+                <p>{auditIntent.summary}</p>
 
-                <div className="ai-intelligence-grid">
-                  <article>
-                    <small>Intención detectada</small>
-                    <strong>{auditIntent.title}</strong>
-                    <em>{Math.round(auditIntent.confidence * 100)}% confianza</em>
-                  </article>
-
-                  <article>
-                    <small>Vista recomendada</small>
-                    <strong>{workspaceRecommendation.workspaceMode}</strong>
-                    <em>{workspaceRecommendation.primaryAction}</em>
-                  </article>
+                <div className="ai-auditor-next-step">
+                  <strong>Qué puedo hacer ahora</strong>
+                  <small>{workspaceRecommendation.primaryAction}</small>
                 </div>
 
-                {workspaceRecommendation.availableCapabilities.length > 0 && (
-                  <div className="ai-capability-list available">
-                    <strong>Disponible</strong>
+                {missingCapabilities.length > 0 ? (
+                  <div className="ai-auditor-gap">
+                    <strong>Para hacerlo real todavía falta</strong>
 
-                    {workspaceRecommendation.availableCapabilities.map((capability) => (
-                      <small key={capability}>✓ {capability}</small>
-                    ))}
+                    <ul>
+                      {missingCapabilities.slice(0, 3).map((capability) => (
+                        <li key={capability}>{capability}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="ai-auditor-ready">
+                    <strong>Capacidad disponible</strong>
+                    <small>La app puede preparar este flujo con las capacidades actuales.</small>
                   </div>
                 )}
 
-                {workspaceRecommendation.simulatedCapabilities.length > 0 && (
-                  <div className="ai-capability-list simulated">
-                    <strong>Simulado</strong>
-
-                    {workspaceRecommendation.simulatedCapabilities.map((capability) => (
-                      <small key={capability}>◐ {capability}</small>
-                    ))}
-                  </div>
-                )}
-
-                {workspaceRecommendation.missingCapabilities.length > 0 && (
-                  <div className="ai-capability-list missing">
-                    <strong>Brechas detectadas</strong>
-
-                    {workspaceRecommendation.missingCapabilities.map((capability) => (
-                      <small key={capability}>× {capability}</small>
-                    ))}
-                  </div>
-                )}
-
-                {workspaceRecommendation.developerMessage && (
-                  <div className="ai-developer-message">
-                    <strong>Mensaje para desarrollo</strong>
-                    <p>{workspaceRecommendation.developerMessage}</p>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {recommendation ? (
-              <div className="ai-copilot-recommendation">
-                <span>Recomendación IA</span>
-                <h3>{recommendation.title}</h3>
-                <p>{recommendation.summary}</p>
-
-                <article className="ai-recommended-node-card">
-                  <small>Nodo recomendado</small>
-                  <strong>{recommendation.recommendedNode}</strong>
-                </article>
-
-                <article className="ai-suggested-flow-card">
+                <article className="ai-auditor-flow-preview">
                   <small>Flujo sugerido</small>
 
                   <ol>
@@ -276,14 +241,6 @@ function CanvasAIAssistant({
                   <button
                     type="button"
                     className="canvas-ai-primary"
-                    onClick={() => onCreateRecommendedNode(recommendation)}
-                  >
-                    Crear primer nodo
-                  </button>
-
-                  <button
-                    type="button"
-                    className="canvas-ai-secondary"
                     onClick={() => onCreateRecommendedFlow(recommendation)}
                   >
                     Crear flujo sugerido
@@ -291,25 +248,96 @@ function CanvasAIAssistant({
 
                   <button
                     type="button"
-                    className="canvas-ai-ghost"
-                    onClick={saveLearning}
+                    className="canvas-ai-secondary"
+                    onClick={() => onCreateRecommendedNode(recommendation)}
                   >
-                    Guardar aprendizaje
+                    Crear primer nodo
+                  </button>
+
+                  <button
+                    type="button"
+                    className="canvas-ai-ghost"
+                    onClick={() => setShowTechnicalDetail((currentValue) => !currentValue)}
+                  >
+                    {showTechnicalDetail ? 'Ocultar detalle técnico' : 'Ver detalle técnico'}
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  className="ai-save-learning-link"
+                  onClick={saveLearning}
+                >
+                  Guardar esta necesidad para aprendizaje
+                </button>
 
                 {savedMessage && (
                   <div className="ai-learning-saved">
                     {savedMessage}
                   </div>
                 )}
-              </div>
+
+                {showTechnicalDetail && hasTechnicalDetail && (
+                  <div className="ai-technical-detail">
+                    <div className="ai-intelligence-grid">
+                      <article>
+                        <small>Intención detectada</small>
+                        <strong>{auditIntent.title}</strong>
+                        <em>{Math.round(auditIntent.confidence * 100)}% confianza</em>
+                      </article>
+
+                      <article>
+                        <small>Vista recomendada</small>
+                        <strong>{workspaceRecommendation.workspaceMode}</strong>
+                        <em>{workspaceRecommendation.primaryAction}</em>
+                      </article>
+                    </div>
+
+                    {availableCapabilities.length > 0 && (
+                      <div className="ai-capability-list available">
+                        <strong>Disponible</strong>
+
+                        {availableCapabilities.map((capability) => (
+                          <small key={capability}>✓ {capability}</small>
+                        ))}
+                      </div>
+                    )}
+
+                    {simulatedCapabilities.length > 0 && (
+                      <div className="ai-capability-list simulated">
+                        <strong>Simulado</strong>
+
+                        {simulatedCapabilities.map((capability) => (
+                          <small key={capability}>◐ {capability}</small>
+                        ))}
+                      </div>
+                    )}
+
+                    {missingCapabilities.length > 0 && (
+                      <div className="ai-capability-list missing">
+                        <strong>Brechas detectadas</strong>
+
+                        {missingCapabilities.map((capability) => (
+                          <small key={capability}>× {capability}</small>
+                        ))}
+                      </div>
+                    )}
+
+                    {workspaceRecommendation.developerMessage && (
+                      <div className="ai-developer-message">
+                        <strong>Mensaje para desarrollo</strong>
+                        <p>{workspaceRecommendation.developerMessage}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
             ) : (
               <div className="ai-copilot-empty-state">
-                <strong>Estoy listo para interpretar la solicitud del auditor.</strong>
+                <strong>Describe qué quieres auditar.</strong>
                 <p>
-                  Describe qué quieres auditar. Revisaré la intención, las capacidades disponibles,
-                  las brechas técnicas y el espacio de trabajo recomendado.
+                  La IA identificará tu intención, preparará un flujo sugerido y señalará qué
+                  capacidades faltan para convertirlo en análisis real.
                 </p>
               </div>
             )}

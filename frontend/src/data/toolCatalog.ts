@@ -242,11 +242,11 @@ export const toolCatalog: ToolDefinition[] = [
     capabilities: ['payments', 'contract', 'evidence', 'amount', 'date', 'compliance'],
     actions: [
       {
-        id: 'validate-payments-123',
-        icon: '123',
-        name: 'Validar pagos 1, 2 y 3',
-        description: 'Verificar si los pagos 1, 2 y 3 se cumplieron.',
-        inputTypes: ['dataset', 'sqlDataset'],
+        id: 'validate-payments-against-contracts',
+        icon: 'PAY',
+        name: 'Validar pagos contra contratos',
+        description: 'Cruzar pagos contra contratos, proveedores, facturas, montos, fechas y soporte documental.',
+        inputTypes: ['dataset', 'sqlDataset', 'excel'],
         outputType: 'auditResult',
         aiSuggested: true,
         requiresConfiguration: true,
@@ -468,3 +468,4 @@ export function getSuggestedActionsForOutput(outputType: NodeDataType) {
     )
     .filter(({ action }) => action.aiSuggested && action.inputTypes.includes(outputType))
 }
+
