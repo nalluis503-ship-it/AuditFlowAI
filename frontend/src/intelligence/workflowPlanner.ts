@@ -376,8 +376,8 @@ export function planWorkflowFromIntent(
       return {
         title: 'Flujo para detectar pagos duplicados',
         summary:
-          'Se recomienda cargar la base, perfilar campos clave, buscar duplicados y preparar hallazgos.',
-        recommendedNode: 'Buscar duplicados',
+          'Se recomienda cargar la base, perfilar campos clave, buscar pagos duplicados y preparar hallazgos.',
+        recommendedNode: 'Buscar pagos duplicados',
         steps: [
           'Cargar archivo Excel',
           'Perfilar columnas',
@@ -454,15 +454,24 @@ export function planWorkflowFromIntent(
   }
 
   if (intent.type === 'duplicate-detection') {
+    const isPaymentDuplicate =
+      intent.subtype === 'duplicate-payment' ||
+      requestProfile?.entities.includes('payments') ||
+      requestProfile?.normalizedPrompt.includes('pago') ||
+      requestProfile?.normalizedPrompt.includes('pagos')
+
     return {
-      title: 'Flujo para búsqueda de duplicados',
-      summary:
-        'Se recomienda cargar la fuente, perfilar campos y ejecutar detección de duplicados.',
-      recommendedNode: 'Buscar duplicados',
+      title: isPaymentDuplicate
+        ? 'Flujo para detectar pagos duplicados'
+        : 'Flujo para búsqueda de duplicados',
+      summary: isPaymentDuplicate
+        ? 'Se recomienda cargar la base, perfilar campos clave, buscar pagos duplicados y preparar hallazgos.'
+        : 'Se recomienda cargar la fuente, perfilar campos y ejecutar detección de duplicados.',
+      recommendedNode: isPaymentDuplicate ? 'Buscar pagos duplicados' : 'Buscar duplicados',
       steps: [
         'Cargar archivo Excel',
         'Perfilar columnas',
-        'Buscar duplicados',
+        isPaymentDuplicate ? 'Buscar pagos duplicados' : 'Buscar duplicados',
         'Crear hallazgo',
       ],
       toolSteps: [
@@ -479,10 +488,10 @@ export function planWorkflowFromIntent(
           ['perfilar', 'profile'],
         ),
         step(
-          'Buscar duplicados',
-          'find-exact-duplicates',
+          isPaymentDuplicate ? 'Buscar pagos duplicados' : 'Buscar duplicados',
+          isPaymentDuplicate ? 'find-payment-duplicates' : 'find-exact-duplicates',
           ['duplicate-analysis', 'duplicados'],
-          ['duplicados', 'pagos duplicados'],
+          isPaymentDuplicate ? ['pagos duplicados', 'duplicados'] : ['duplicados'],
         ),
         step(
           'Crear hallazgo',
@@ -622,5 +631,9 @@ export function planWorkflowFromIntent(
     ],
   }
 }
+
+
+
+
 
 
