@@ -122,9 +122,44 @@ function findToolActionByKeywords(
   }
 }
 
+function findToolActionByActionId(actionId: string): ToolActionSelection | null {
+  for (const tool of toolCatalog) {
+    const action = tool.actions.find((candidateAction) => candidateAction.id === actionId)
+
+    if (action) {
+      return {
+        tool,
+        action,
+      }
+    }
+  }
+
+  return null
+}
 function getRecommendationPlan(
   recommendation: CanvasAIRecommendation,
 ): ToolActionSelection[] {
+  const removeDuplicateSelections = (selections: ToolActionSelection[]) =>
+    selections.filter((selection, index, currentSelections) => {
+      const key = `${selection.tool.id}-${selection.action.id}`
+
+      return currentSelections.findIndex((currentSelection) =>
+        `${currentSelection.tool.id}-${currentSelection.action.id}` === key
+      ) === index
+    })
+
+  if (recommendation.workflowPlan?.toolSteps?.length) {
+    const plannedSelections = recommendation.workflowPlan.toolSteps
+      .map((step) =>
+        step.actionId
+          ? findToolActionByActionId(step.actionId) ?? findToolActionByKeywords(step.toolKeywords, step.actionKeywords)
+          : findToolActionByKeywords(step.toolKeywords, step.actionKeywords),
+      )
+      .filter((selection): selection is ToolActionSelection => Boolean(selection))
+
+    if (plannedSelections.length > 0) return plannedSelections
+  }
+
   const blueprints: Record<CanvasAIRecommendation['type'], Array<{
     toolKeywords: string[]
     actionKeywords?: string[]
@@ -135,14 +170,14 @@ function getRecommendationPlan(
       { toolKeywords: ['ai', 'ia', 'auditor'], actionKeywords: ['sugerir', 'analizar'] },
     ],
     'file-review': [
-      { toolKeywords: ['upload', 'subir', 'excel', 'archivo'], actionKeywords: ['subir', 'cargar'] },
+      { toolKeywords: ['pdf', 'documento', 'evidencia', 'archivo'], actionKeywords: ['pdf', 'documento', 'cargar', 'visualizar'] },
       { toolKeywords: ['viewer', 'visualizador', 'vista', 'datos'], actionKeywords: ['visualizar', 'perfil', 'ver'] },
       { toolKeywords: ['ai', 'ia', 'auditor'], actionKeywords: ['analizar', 'sugerir'] },
     ],
     'payment-validation': [
       { toolKeywords: ['upload', 'subir', 'excel', 'archivo'], actionKeywords: ['subir', 'cargar'] },
-      { toolKeywords: ['payment', 'pago', 'valid'], actionKeywords: ['validar', 'pago'] },
-      { toolKeywords: ['hallazgo', 'finding', 'audit'], actionKeywords: ['hallazgo', 'generar'] },
+      { toolKeywords: ['payment-validation', 'validar pagos', 'pago'], actionKeywords: ['validar pagos contra contratos', 'validar pagos', 'pago'] },
+      { toolKeywords: ['audit-finding', 'hallazgo', 'finding'], actionKeywords: ['crear hallazgo', 'hallazgo', 'generar'] },
     ],
     findings: [
       { toolKeywords: ['hallazgo', 'finding', 'audit'], actionKeywords: ['hallazgo', 'generar'] },
@@ -162,13 +197,7 @@ function getRecommendationPlan(
     )
     .filter((selection): selection is ToolActionSelection => Boolean(selection))
 
-  const uniqueSelections = selections.filter((selection, index, currentSelections) => {
-    const key = `${selection.tool.id}-${selection.action.id}`
-
-    return currentSelections.findIndex((currentSelection) =>
-      `${currentSelection.tool.id}-${currentSelection.action.id}` === key
-    ) === index
-  })
+  const uniqueSelections = removeDuplicateSelections(selections)
 
   if (uniqueSelections.length > 0) return uniqueSelections
 
@@ -682,6 +711,9 @@ function App() {
 }
 
 export default App
+
+
+
 
 
 

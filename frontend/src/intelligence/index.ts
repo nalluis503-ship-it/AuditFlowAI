@@ -29,3 +29,25 @@ export {
   type CanvasAIRecommendation,
   type CanvasAIRecommendationType,
 } from './canvasRecommendationEngine'
+
+export {
+  analyzeSemanticAuditIntent,
+  type SemanticAuditIntent,
+  type SemanticAuditIntentType,
+  type SemanticAuditSubtype,
+} from './semanticAuditIntentEngine'
+
+export {
+  planWorkflowFromIntent,
+  type WorkflowPlan,
+  type WorkflowPlanStep,
+} from './workflowPlanner'
+
+export {
+  parseAuditRequest,
+  type AuditRequestProfile,
+  type AuditSourceType,
+  type AuditOperationType,
+  type AuditEntityType,
+  type AuditOutputArtifact,
+} from './auditRequestParser'
