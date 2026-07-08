@@ -1,0 +1,402 @@
+﻿.audit-workspace {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  color: #eef4ff;
+  background:
+    radial-gradient(circle at 22% 24%, rgba(37, 99, 235, 0.24), transparent 28%),
+    radial-gradient(circle at 78% 32%, rgba(124, 58, 237, 0.18), transparent 30%),
+    #020714;
+}
+
+.audit-workspace-background {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(125, 174, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 174, 255, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at center, black, transparent 82%);
+}
+
+.audit-workspace-background::after {
+  content: '';
+  position: absolute;
+  inset: 42% -10% -30%;
+  background: repeating-radial-gradient(
+    ellipse at center,
+    rgba(56, 189, 248, 0.14) 0 1px,
+    transparent 1px 34px
+  );
+  transform: perspective(900px) rotateX(62deg);
+}
+
+.audit-workspace-header,
+.audit-workspace-body {
+  position: relative;
+  z-index: 1;
+}
+
+.audit-workspace-header {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(360px, 560px) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 22px 10px;
+}
+
+.audit-workspace-brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.audit-workspace-logo {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed, #06b6d4);
+  box-shadow: 0 18px 44px rgba(37, 99, 235, 0.42);
+  font-weight: 900;
+}
+
+.audit-workspace-brand span,
+.audit-workspace-context span,
+.audit-workspace-metrics span,
+.audit-workspace-principles span {
+  color: #9bc9ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.audit-workspace-brand h1 {
+  margin: 3px 0 0;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.audit-workspace-command-bar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 174, 255, 0.18);
+  border-radius: 18px;
+  background: rgba(4, 12, 28, 0.72);
+  backdrop-filter: blur(18px);
+}
+
+.audit-workspace-command-bar span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.34);
+  color: #bfdbfe;
+  font-weight: 900;
+}
+
+.audit-workspace-command-bar input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #eef4ff;
+  background: transparent;
+}
+
+.audit-workspace-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.audit-workspace-actions button,
+.audit-workspace-rail button {
+  border: 1px solid rgba(125, 174, 255, 0.2);
+  color: #eef4ff;
+  background: rgba(7, 15, 34, 0.72);
+  cursor: pointer;
+}
+
+.audit-workspace-actions button {
+  padding: 11px 14px;
+  border-radius: 999px;
+}
+
+.audit-workspace-body {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 330px;
+  gap: 14px;
+  height: calc(100dvh - 82px);
+  padding: 8px 18px 18px;
+}
+
+.audit-workspace-rail,
+.audit-workspace-context,
+.audit-workspace-surface {
+  border: 1px solid rgba(125, 174, 255, 0.14);
+  background: rgba(3, 9, 22, 0.58);
+  backdrop-filter: blur(18px);
+}
+
+.audit-workspace-rail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 24px;
+}
+
+.audit-workspace-rail button {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 10px 4px;
+  border-radius: 16px;
+}
+
+.audit-workspace-rail button.active {
+  border-color: rgba(96, 165, 250, 0.7);
+  background: rgba(37, 99, 235, 0.26);
+  box-shadow: 0 0 30px rgba(37, 99, 235, 0.28);
+}
+
+.audit-workspace-rail span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+  background: rgba(125, 174, 255, 0.12);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.audit-workspace-rail small {
+  font-size: 10px;
+}
+
+.audit-workspace-surface {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 30px;
+}
+
+.audit-workspace-core-map {
+  position: absolute;
+  inset: 0;
+  opacity: 0.88;
+  pointer-events: none;
+}
+
+.audit-workspace-core {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 154px;
+  height: 154px;
+  border: 2px solid rgba(125, 211, 252, 0.72);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.28), rgba(4, 11, 29, 0.94) 68%);
+  box-shadow: 0 0 52px rgba(56, 189, 248, 0.42), 0 0 120px rgba(124, 58, 237, 0.26);
+  transform: translate(-50%, -50%);
+}
+
+.audit-workspace-core > span {
+  font-size: 34px;
+  font-weight: 950;
+}
+
+.audit-workspace-core strong,
+.audit-workspace-core small {
+  display: block;
+}
+
+.audit-workspace-core small {
+  color: rgba(222, 236, 255, 0.64);
+}
+
+.audit-workspace-core::after {
+  content: '';
+  position: absolute;
+  bottom: -112px;
+  left: 50%;
+  width: 340px;
+  height: 112px;
+  border: 2px solid rgba(56, 189, 248, 0.22);
+  border-radius: 50%;
+  box-shadow: 0 0 36px rgba(56, 189, 248, 0.25);
+  transform: translateX(-50%) perspective(700px) rotateX(64deg);
+}
+
+.audit-domain-node {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 999px;
+  background: rgba(5, 14, 32, 0.72);
+  box-shadow: 0 0 24px rgba(37, 99, 235, 0.16);
+}
+
+.audit-domain-node i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #38bdf8;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.72);
+}
+
+.audit-domain-node strong {
+  font-size: 12px;
+}
+
+.audit-domain-node-1 { left: 22%; top: 30%; }
+.audit-domain-node-2 { left: 35%; top: 16%; }
+.audit-domain-node-3 { left: 66%; top: 17%; }
+.audit-domain-node-4 { left: 78%; top: 36%; }
+.audit-domain-node-5 { left: 70%; top: 72%; }
+.audit-domain-node-6 { left: 42%; top: 82%; }
+.audit-domain-node-7 { left: 20%; top: 68%; }
+.audit-domain-node-8 { left: 16%; top: 48%; }
+
+.audit-workspace-layer {
+  position: absolute;
+  inset: 18px;
+  z-index: 3;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.985);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.audit-workspace-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.audit-command-layer {
+  display: grid;
+  place-items: center;
+}
+
+.audit-data-layer {
+  overflow: auto;
+}
+
+.audit-data-layer .guided-data-stage {
+  min-height: 100%;
+}
+
+.audit-technical-layer {
+  overflow: hidden;
+}
+
+.audit-technical-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(125, 174, 255, 0.16);
+  border-radius: 24px;
+  background: rgba(3, 8, 18, 0.74);
+}
+
+.audit-technical-shell .react-flow {
+  width: 100%;
+  height: 100%;
+}
+
+.audit-workspace-overlays {
+  position: absolute;
+  inset: 18px;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.audit-workspace-overlays > * {
+  pointer-events: auto;
+}
+
+.audit-workspace-context {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 26px;
+}
+
+.audit-workspace-context section,
+.audit-workspace-metrics article {
+  border: 1px solid rgba(125, 174, 255, 0.13);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.audit-workspace-context strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 20px;
+}
+
+.audit-workspace-context p,
+.audit-workspace-principles li {
+  color: rgba(232, 242, 255, 0.64);
+  line-height: 1.5;
+}
+
+.audit-workspace-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.audit-workspace-metrics strong {
+  font-size: 28px;
+}
+
+.audit-workspace-principles ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 1280px) {
+  .audit-workspace-body {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .audit-workspace-context {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .audit-workspace-header,
+  .audit-workspace-body {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-workspace-rail {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
