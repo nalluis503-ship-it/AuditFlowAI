@@ -20,6 +20,9 @@ import GuidedDataStage from './components/GuidedDataStage'
 import CanvasAIAssistant, {
   type CanvasAIRecommendation,
 } from './components/CanvasAIAssistant'
+import AuditWorkspace, {
+  type AuditWorkspaceFocus,
+} from './components/workspaces/AuditWorkspace'
 import {
   toolCatalog,
   type NodeDataType,
@@ -35,18 +38,6 @@ import {
   getGuidedAnalysisActionIds,
   type GuidedAnalysisFlowIntent,
 } from './intelligence/guidedAnalysisFlowPlanner'
-
-const sidebarItems = [
-  { icon: 'IN', title: 'Inicio', description: 'Resumen general y actividad reciente.', active: false },
-  { icon: 'WF', title: 'Workflows', description: 'Crea y gestiona tus flujos de trabajo.', active: false },
-  { icon: 'DB', title: 'Laboratorio de Base de Datos', description: 'Analiza, consulta y cruza informacion de tus bases de datos.', active: true },
-  { icon: 'AU', title: 'Procedimientos de Auditoria', description: 'Accede a metodologias y procedimientos.', active: false },
-  { icon: 'DO', title: 'Documentos', description: 'Gestiona y consulta tus archivos y plantillas.', active: false },
-  { icon: 'TL', title: 'Herramientas', description: 'Explora y utiliza herramientas disponibles.', active: false },
-  { icon: 'IA', title: 'IA Auditora', description: 'Analisis inteligente y deteccion de anomalias.', active: false },
-  { icon: 'RP', title: 'Reportes', description: 'Genera reportes y visualizaciones.', active: false },
-  { icon: 'CF', title: 'Configuracion', description: 'Personaliza tu entorno y preferencias.', active: false },
-]
 
 const initialNodes: AuditFlowNode[] = []
 
@@ -71,7 +62,7 @@ type ToolActionSelection = {
   action: ToolAction
 }
 
-type WorkspaceMode = 'canvas' | 'guided-data-stage'
+type WorkspaceMode = AuditWorkspaceFocus
 
 function normalize(value: string) {
   return value
@@ -240,7 +231,7 @@ function App() {
   const [learningNeeds, setLearningNeeds] = useState<LearningNeed[]>(readLearningNeedsFromStorage)
   const [nodes, setNodes, onNodesChange] = useNodesState<AuditFlowNode>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('canvas')
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('command')
 
   const closeSmartConnect = useCallback(() => {
     setSmartConnectContext(null)
@@ -289,7 +280,6 @@ function App() {
   )
 
   const openLibrary = () => {
-    setWorkspaceMode('canvas')
     closeSmartConnect()
     closeNodeEditor()
     setIsLibraryOpen(true)
@@ -299,16 +289,6 @@ function App() {
     setIsLibraryOpen(false)
   }
 
-  const openCanvasWorkspace = () => {
-    setWorkspaceMode('canvas')
-  }
-
-  const openGuidedDataStage = () => {
-    closeSmartConnect()
-    closeNodeEditor()
-    closeLibrary()
-    setWorkspaceMode('guided-data-stage')
-  }
 
   const createNodeData = (tool: ToolDefinition, action: ToolAction) => ({
     icon: tool.icon,
@@ -382,7 +362,7 @@ function App() {
       .filter((selection): selection is ToolActionSelection => Boolean(selection))
 
     addFlowFromSelections(selections)
-    setWorkspaceMode('canvas')
+    setWorkspaceMode('technical')
   }
 
   const saveLearningNeed = (
@@ -482,9 +462,6 @@ function App() {
   const openedNode = openNodeId
     ? nodes.find((node) => node.id === openNodeId)
     : null
-
-  const showCanvasAssistant =
-    workspaceMode === 'canvas' && !isLibraryOpen && !smartConnectContext && !openedNode
 
 
   const sleep = (milliseconds: number) =>
@@ -593,172 +570,119 @@ function App() {
     )
   }
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">AF</div>
-          <h1>AuditFlow AI</h1>
-        </div>
+    <AuditWorkspace
+      activeFocus={workspaceMode}
+      nodeCount={nodes.length}
+      edgeCount={edges.length}
+      learningNeedCount={learningNeeds.length}
+      dataSourceCount={0}
+      onFocusChange={setWorkspaceMode}
+      onRunWorkflow={runWorkflow}
+      onOpenTools={openLibrary}
+      commandLayer={(
+        <>
+          <CanvasAIAssistant
+            showStartActions={nodes.length === 0}
+            onOpenManualLibrary={openLibrary}
+            onCreateRecommendedNode={addRecommendedNode}
+            onCreateRecommendedFlow={addRecommendedFlow}
+            onSaveLearningNeed={saveLearningNeed}
+          />
 
-        <nav className="main-nav">
-          {sidebarItems.map((item) => (
-            <button key={item.title} className={item.active ? 'nav-item active' : 'nav-item'}>
-              <span className="nav-icon">{item.icon}</span>
-              <span>
-                <strong>{item.title}</strong>
-                <small>{item.description}</small>
-              </span>
-            </button>
-          ))}
-        </nav>
+          {learningNeeds.length > 0 && (
+            <aside className="learning-memory-dock">
+              <span>Memoria de aprendizaje</span>
+              <strong>
+                {learningNeeds.length} necesidad{learningNeeds.length === 1 ? '' : 'es'} detectada{learningNeeds.length === 1 ? '' : 's'}
+              </strong>
 
-        <div className="user-card">
-          <div className="avatar">AD</div>
-          <div>
-            <strong>Auditor Demo</strong>
-            <small>auditor@demo.com</small>
-          </div>
-          <span className="chevron">⌄</span>
-        </div>
-      </aside>
-
-      <main className="builder">
-        <header className="topbar">
-          <div className="workflow-title">
-            <button className="back-button">←</button>
-            <div>
-              <h2>Nuevo workflow</h2>
-              <span>Laboratorio de Base de Datos</span>
-            </div>
-            <button className="edit-button">Editar</button>
-          </div>
-
-          <div className="top-actions">
-            <button className="ghost-button">Guardar</button>
-
-            <button className="ghost-button" type="button" onClick={runWorkflow}>
-              Ejecutar
-            </button>
-
-            <button
-              className={workspaceMode === 'guided-data-stage' ? 'ghost-button active' : 'ghost-button'}
-              type="button"
-              onClick={workspaceMode === 'guided-data-stage' ? openCanvasWorkspace : openGuidedDataStage}
-            >
-              {workspaceMode === 'guided-data-stage' ? 'Volver al canvas' : 'Mesa de análisis'}
-            </button>
-
-            <button className="primary-button" onClick={openLibrary}>
-              + Agregar herramienta
-            </button>
-          </div>
-        </header>
-
-        <section
-          className="workspace"
+              <div>
+                {learningNeeds.slice(0, 3).map((need) => (
+                  <article key={need.id}>
+                    <small>{need.type}</small>
+                    <p>{need.prompt || need.title}</p>
+                  </article>
+                ))}
+              </div>
+            </aside>
+          )}
+        </>
+      )}
+      dataLayer={(
+        <GuidedDataStage onCreateAnalysisFlow={handleGuidedAnalysisFlow} />
+      )}
+      technicalLayer={(
+        <div
+          className="audit-technical-shell"
           onClick={() => {
             if (isLibraryOpen) closeLibrary()
             if (smartConnectContext) closeSmartConnect()
             if (openedNode) closeNodeEditor()
           }}
         >
-          <div className={`canvas-panel ${workspaceMode === 'guided-data-stage' ? 'guided-stage-panel' : ''}`}>
-            {workspaceMode === 'guided-data-stage' ? (
-              <div className="guided-stage-shell" onClick={(event) => event.stopPropagation()}>
-                <GuidedDataStage onCreateAnalysisFlow={handleGuidedAnalysisFlow} />
-              </div>
-            ) : (
-              <>
-                <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              fitView
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView
+          >
+            <Background />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+
+          {!isLibraryOpen && !smartConnectContext && !openedNode && nodes.length > 0 && (
+            <button
+              className="floating-add-tool"
+              onClick={(event) => {
+                event.stopPropagation()
+                openLibrary()
+              }}
             >
-              <Background />
-              <Controls />
-              <MiniMap />
-            </ReactFlow>
-
-            {showCanvasAssistant && (
-              <>
-                <CanvasAIAssistant
-                  showStartActions={nodes.length === 0}
-                  onOpenManualLibrary={openLibrary}
-                  onCreateRecommendedNode={addRecommendedNode}
-                  onCreateRecommendedFlow={addRecommendedFlow}
-                  onSaveLearningNeed={saveLearningNeed}
-                />
-
-                {learningNeeds.length > 0 && (
-                  <aside className="learning-memory-dock">
-                    <span>Memoria de aprendizaje</span>
-                    <strong>{learningNeeds.length} necesidad{learningNeeds.length === 1 ? '' : 'es'} detectada{learningNeeds.length === 1 ? '' : 's'}</strong>
-
-                    <div>
-                      {learningNeeds.slice(0, 3).map((need) => (
-                        <article key={need.id}>
-                          <small>{need.type}</small>
-                          <p>{need.prompt || need.title}</p>
-                        </article>
-                      ))}
-                    </div>
-                  </aside>
-                )}
-              </>
-            )}
-
-            {!isLibraryOpen && !smartConnectContext && !openedNode && nodes.length > 0 && (
-              <button
-                className="floating-add-tool"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  openLibrary()
-                }}
-              >
-                + Agregar herramienta
-              </button>
-            )}
-
-            {smartConnectContext && (
-              <div
-                className="smart-connect-floating-panel"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <SmartConnectMenu
-                  outputType={smartConnectContext.outputType}
-                  onSelectSuggestion={addSmartConnectedNode}
-                  onClose={closeSmartConnect}
-                />
-              </div>
-            )}
-
-            {openedNode && (
-              <NodeEditor
-                node={openedNode}
-                onClose={closeNodeEditor}
-                onAttachFiles={handleAttachFiles}
-                onSuggestNextNode={suggestNextNodeFromEditor}
-                onRunNode={runSingleNode}
+              + Agregar herramienta
+            </button>
+          )}
+        </div>
+      )}
+      overlayLayer={(
+        <>
+          {smartConnectContext && (
+            <div
+              className="smart-connect-floating-panel"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <SmartConnectMenu
+                outputType={smartConnectContext.outputType}
+                onSelectSuggestion={addSmartConnectedNode}
+                onClose={closeSmartConnect}
               />
-            )}
+            </div>
+          )}
 
-                {isLibraryOpen && (
-                  <ToolLibrary
-                    onCreateNode={addToolNode}
-                    onClose={closeLibrary}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </section>
-      </main>
-    </div>
+          {openedNode && (
+            <NodeEditor
+              node={openedNode}
+              onClose={closeNodeEditor}
+              onAttachFiles={handleAttachFiles}
+              onSuggestNextNode={suggestNextNodeFromEditor}
+              onRunNode={runSingleNode}
+            />
+          )}
+
+          {isLibraryOpen && (
+            <ToolLibrary
+              onCreateNode={addToolNode}
+              onClose={closeLibrary}
+            />
+          )}
+        </>
+      )}
+    />
   )
+
 }
 
 export default App
