@@ -16,6 +16,7 @@ import { applyExecutionResultToNodeData, executeWorkflowNode, sortNodesForExecut
 import ToolLibrary from './components/ToolLibrary/ToolLibrary'
 import SmartConnectMenu from './components/SmartConnect/SmartConnectMenu'
 import NodeEditor from './components/NodeEditor'
+import GuidedDataStage from './components/GuidedDataStage'
 import CanvasAIAssistant, {
   type CanvasAIRecommendation,
 } from './components/CanvasAIAssistant'
@@ -30,6 +31,10 @@ import {
   type AuditFlowNode,
   type NodeFileMeta,
 } from './components/WorkflowNode'
+import {
+  getGuidedAnalysisActionIds,
+  type GuidedAnalysisFlowIntent,
+} from './intelligence/guidedAnalysisFlowPlanner'
 
 const sidebarItems = [
   { icon: 'IN', title: 'Inicio', description: 'Resumen general y actividad reciente.', active: false },
@@ -65,6 +70,8 @@ type ToolActionSelection = {
   tool: ToolDefinition
   action: ToolAction
 }
+
+type WorkspaceMode = 'canvas' | 'guided-data-stage'
 
 function normalize(value: string) {
   return value
@@ -233,6 +240,7 @@ function App() {
   const [learningNeeds, setLearningNeeds] = useState<LearningNeed[]>(readLearningNeedsFromStorage)
   const [nodes, setNodes, onNodesChange] = useNodesState<AuditFlowNode>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('canvas')
 
   const closeSmartConnect = useCallback(() => {
     setSmartConnectContext(null)
@@ -281,6 +289,7 @@ function App() {
   )
 
   const openLibrary = () => {
+    setWorkspaceMode('canvas')
     closeSmartConnect()
     closeNodeEditor()
     setIsLibraryOpen(true)
@@ -288,6 +297,17 @@ function App() {
 
   const closeLibrary = () => {
     setIsLibraryOpen(false)
+  }
+
+  const openCanvasWorkspace = () => {
+    setWorkspaceMode('canvas')
+  }
+
+  const openGuidedDataStage = () => {
+    closeSmartConnect()
+    closeNodeEditor()
+    closeLibrary()
+    setWorkspaceMode('guided-data-stage')
   }
 
   const createNodeData = (tool: ToolDefinition, action: ToolAction) => ({
@@ -324,9 +344,7 @@ function App() {
     addToolNode(selection.tool, selection.action)
   }
 
-  const addRecommendedFlow = (recommendation: CanvasAIRecommendation) => {
-    const selections = getRecommendationPlan(recommendation)
-
+  const addFlowFromSelections = (selections: ToolActionSelection[]) => {
     if (selections.length === 0) return
 
     const timestamp = Date.now()
@@ -352,6 +370,19 @@ function App() {
 
     setNodes((currentNodes) => [...currentNodes, ...recommendedNodes])
     setEdges((currentEdges) => [...currentEdges, ...recommendedEdges])
+  }
+
+  const addRecommendedFlow = (recommendation: CanvasAIRecommendation) => {
+    addFlowFromSelections(getRecommendationPlan(recommendation))
+  }
+
+  const handleGuidedAnalysisFlow = (intent: GuidedAnalysisFlowIntent) => {
+    const selections = getGuidedAnalysisActionIds(intent)
+      .map(findToolActionByActionId)
+      .filter((selection): selection is ToolActionSelection => Boolean(selection))
+
+    addFlowFromSelections(selections)
+    setWorkspaceMode('canvas')
   }
 
   const saveLearningNeed = (
@@ -453,7 +484,7 @@ function App() {
     : null
 
   const showCanvasAssistant =
-    !isLibraryOpen && !smartConnectContext && !openedNode
+    workspaceMode === 'canvas' && !isLibraryOpen && !smartConnectContext && !openedNode
 
 
   const sleep = (milliseconds: number) =>
@@ -604,7 +635,19 @@ function App() {
 
           <div className="top-actions">
             <button className="ghost-button">Guardar</button>
-            <button className="ghost-button" type="button" onClick={runWorkflow}>Ejecutar</button>
+
+            <button className="ghost-button" type="button" onClick={runWorkflow}>
+              Ejecutar
+            </button>
+
+            <button
+              className={workspaceMode === 'guided-data-stage' ? 'ghost-button active' : 'ghost-button'}
+              type="button"
+              onClick={workspaceMode === 'guided-data-stage' ? openCanvasWorkspace : openGuidedDataStage}
+            >
+              {workspaceMode === 'guided-data-stage' ? 'Volver al canvas' : 'Mesa de análisis'}
+            </button>
+
             <button className="primary-button" onClick={openLibrary}>
               + Agregar herramienta
             </button>
@@ -619,8 +662,14 @@ function App() {
             if (openedNode) closeNodeEditor()
           }}
         >
-          <div className="canvas-panel">
-            <ReactFlow
+          <div className={`canvas-panel ${workspaceMode === 'guided-data-stage' ? 'guided-stage-panel' : ''}`}>
+            {workspaceMode === 'guided-data-stage' ? (
+              <div className="guided-stage-shell" onClick={(event) => event.stopPropagation()}>
+                <GuidedDataStage onCreateAnalysisFlow={handleGuidedAnalysisFlow} />
+              </div>
+            ) : (
+              <>
+                <ReactFlow
               nodes={nodes}
               edges={edges}
               nodeTypes={nodeTypes}
@@ -697,11 +746,13 @@ function App() {
               />
             )}
 
-            {isLibraryOpen && (
-              <ToolLibrary
-                onCreateNode={addToolNode}
-                onClose={closeLibrary}
-              />
+                {isLibraryOpen && (
+                  <ToolLibrary
+                    onCreateNode={addToolNode}
+                    onClose={closeLibrary}
+                  />
+                )}
+              </>
             )}
           </div>
         </section>
@@ -711,6 +762,7 @@ function App() {
 }
 
 export default App
+
 
 
 

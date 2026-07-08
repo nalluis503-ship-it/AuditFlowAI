@@ -1,4 +1,8 @@
 ﻿import { useMemo, useState, type ChangeEvent } from 'react'
+import type {
+  GuidedAnalysisAction,
+  GuidedAnalysisFlowIntent,
+} from '../../intelligence/guidedAnalysisFlowPlanner'
 import './GuidedDataStage.css'
 
 type DataStageSourceType = 'excel' | 'csv' | 'sql-dump' | 'document' | 'unknown'
@@ -32,18 +36,8 @@ type DataFileProfile = {
   suggestedActions: string[]
 }
 
-export type GuidedDataStageAnalysisIntent = {
-  action:
-    | 'compare-datasets'
-    | 'detect-duplicates'
-    | 'validate-payments'
-    | 'review-missing-records'
-    | 'custom-analysis'
-  sourceFileIds: string[]
-}
-
 type GuidedDataStageProps = {
-  onCreateAnalysisFlow?: (intent: GuidedDataStageAnalysisIntent) => void
+  onCreateAnalysisFlow?: (intent: GuidedAnalysisFlowIntent) => void
 }
 
 function getFileExtension(fileName: string) {
@@ -217,7 +211,7 @@ export default function GuidedDataStage({ onCreateAnalysisFlow }: GuidedDataStag
     setSelectedProfileId(nextProfiles[0]?.id ?? null)
   }
 
-  const createFlow = (action: GuidedDataStageAnalysisIntent['action']) => {
+  const createFlow = (action: GuidedAnalysisAction) => {
     onCreateAnalysisFlow?.({
       action,
       sourceFileIds: profiles.map((profile) => profile.id),
@@ -375,3 +369,4 @@ export default function GuidedDataStage({ onCreateAnalysisFlow }: GuidedDataStag
     </section>
   )
 }
+

@@ -410,3 +410,64 @@
     justify-content: flex-start;
   }
 }
+
+/* v0.8.5.2 - Layout containment for guided workspace */
+
+.guided-data-stage {
+  width: 100%;
+  max-width: 100%;
+}
+
+.guided-stage-workspace {
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  align-items: start;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.guided-stage-files,
+.guided-stage-detail,
+.guided-detail-grid,
+.guided-detail-grid article {
+  min-width: 0;
+}
+
+.guided-stage-files {
+  max-width: 320px;
+}
+
+.guided-file-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.guided-file-card strong,
+.guided-detail-header h3,
+.guided-column-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guided-stage-detail {
+  overflow: hidden;
+}
+
+.guided-detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+}
+
+.guided-actions-panel {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1280px) {
+  .guided-stage-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-stage-files {
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
