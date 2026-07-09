@@ -116,8 +116,8 @@ function CanvasAIAssistant({
             onClick={onOpenManualLibrary}
           >
             <span>+</span>
-            <strong>Agregar nodo manual</strong>
-            <small>Elige directamente una herramienta si ya sabes cómo quieres iniciar.</small>
+            <strong>Abrir herramientas</strong>
+            <small>Usa herramientas manuales solo cuando quieras controlar el análisis directamente.</small>
           </button>
 
           <div className="quick-start-strip">
@@ -156,7 +156,7 @@ function CanvasAIAssistant({
             <div>
               <span>Copiloto inteligente</span>
               <strong>Asistente de auditoría</strong>
-              <small>Convierte tu solicitud en flujo, brechas y siguiente acción.</small>
+              <small>Convierte tu solicitud en análisis, pasos guiados y siguiente acción.</small>
             </div>
 
             <button
@@ -182,7 +182,7 @@ function CanvasAIAssistant({
                 </button>
 
                 <button type="button" className="canvas-ai-secondary" onClick={onOpenManualLibrary}>
-                  + Agregar nodo manual
+                  Abrir herramientas
                 </button>
               </div>
             </div>
@@ -223,12 +223,12 @@ function CanvasAIAssistant({
                 ) : (
                   <div className="ai-auditor-ready">
                     <strong>Capacidad disponible</strong>
-                    <small>La app puede preparar este flujo con las capacidades actuales.</small>
+                    <small>La app puede preparar este análisis con las capacidades actuales.</small>
                   </div>
                 )}
 
                 <article className="ai-auditor-flow-preview">
-                  <small>Flujo sugerido</small>
+                  <small>Ruta sugerida</small>
 
                   <ol>
                     {recommendation.suggestedFlow.map((step) => (
@@ -243,7 +243,7 @@ function CanvasAIAssistant({
                     className="canvas-ai-primary"
                     onClick={() => onCreateRecommendedFlow(recommendation)}
                   >
-                    Crear flujo sugerido
+                    Preparar análisis guiado
                   </button>
 
                   <button
@@ -251,7 +251,7 @@ function CanvasAIAssistant({
                     className="canvas-ai-secondary"
                     onClick={() => onCreateRecommendedNode(recommendation)}
                   >
-                    Crear primer nodo
+                    Crear paso inicial
                   </button>
 
                   <button
@@ -336,7 +336,7 @@ function CanvasAIAssistant({
               <div className="ai-copilot-empty-state">
                 <strong>Describe qué quieres auditar.</strong>
                 <p>
-                  La IA identificará tu intención, preparará un flujo sugerido y señalará qué
+                  La IA identificará tu intención, preparará una ruta sugerida y señalará qué
                   capacidades faltan para convertirlo en análisis real.
                 </p>
               </div>
