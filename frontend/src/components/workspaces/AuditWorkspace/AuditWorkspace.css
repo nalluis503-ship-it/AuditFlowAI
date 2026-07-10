@@ -1289,3 +1289,333 @@ body,
 }
 
 /* end v0.8.6.4 */
+
+
+/* v0.8.6.5 - immersive rail and spatial composer */
+
+/* El workspace ya no reserva espacio para el rail izquierdo. */
+.audit-workspace-body {
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: 14px;
+}
+
+.audit-workspace-surface {
+  grid-column: 1 / -1;
+}
+
+/* Zona invisible para invocar el rail desde el borde izquierdo. */
+.audit-rail-hover-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 120;
+  width: 14px;
+  height: 100%;
+}
+
+/* Botón superior para abrir capas sin dejar sidebar fijo. */
+.audit-rail-toggle {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 125;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 999px;
+  color: rgba(226, 242, 255, 0.78);
+  background: rgba(3, 12, 28, 0.42);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.audit-rail-toggle span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #38bdf8;
+  box-shadow:
+    0 0 14px rgba(56, 189, 248, 0.8),
+    0 0 28px rgba(250, 204, 21, 0.24);
+}
+
+.audit-rail-toggle:hover,
+.audit-rail-toggle.active {
+  border-color: rgba(56, 189, 248, 0.42);
+  background: rgba(15, 23, 42, 0.66);
+  transform: translateY(-1px);
+}
+
+/* Rail oculto/deslizable. */
+.audit-workspace-rail {
+  position: absolute;
+  top: 62px;
+  left: 18px;
+  z-index: 130;
+  width: 74px;
+  max-height: calc(100% - 84px);
+  opacity: 0;
+  pointer-events: none;
+  transform:
+    perspective(900px)
+    rotateY(12deg)
+    translate3d(-22px, 0, -60px)
+    scale(0.96);
+  transition:
+    opacity 160ms ease,
+    transform 190ms ease;
+}
+
+.audit-workspace-rail.active,
+.audit-workspace-body.rail-open .audit-workspace-rail {
+  opacity: 1;
+  pointer-events: auto;
+  transform:
+    perspective(900px)
+    rotateY(0deg)
+    translate3d(0, 0, 0)
+    scale(1);
+}
+
+/* El campo crece y aprovecha todo el ancho. */
+.audit-workspace[data-scene='idle'] .audit-workspace-core {
+  left: 50%;
+}
+
+.audit-workspace[data-scene='idle'] .audit-command-layer .ai-copilot-launcher {
+  left: 50%;
+}
+
+.audit-workspace[data-scene='results'] .audit-workspace-core,
+.audit-workspace[data-scene='sources'] .audit-workspace-core,
+.audit-workspace[data-scene='technical'] .audit-workspace-core {
+  left: 27%;
+}
+
+.audit-workspace[data-scene='results'] .audit-command-layer .ai-copilot-launcher,
+.audit-workspace[data-scene='sources'] .audit-command-layer .ai-copilot-launcher,
+.audit-workspace[data-scene='technical'] .audit-command-layer .ai-copilot-launcher {
+  left: 27%;
+}
+
+/* Consola espacial para escribirle a la IA dentro del campo. */
+.audit-spatial-composer {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  z-index: 95;
+  width: min(780px, calc(100% - 180px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.audit-ai-response-stack {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  display: grid;
+  gap: 10px;
+  width: min(640px, 100%);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.audit-ai-response-card {
+  justify-self: center;
+  width: min(620px, 100%);
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 38%),
+    rgba(3, 12, 28, 0.7);
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, 0.3),
+    0 0 38px rgba(56, 189, 248, 0.08);
+  backdrop-filter: blur(18px);
+  transform:
+    perspective(900px)
+    rotateX(3deg);
+}
+
+.audit-ai-response-card span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7dd3fc;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.audit-ai-response-card p {
+  margin: 0;
+  color: rgba(235, 245, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Input vivo integrado al workspace. */
+.audit-ai-input-console {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 9px 10px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(56, 189, 248, 0.14), transparent 40%),
+    rgba(3, 9, 22, 0.66);
+  box-shadow:
+    0 22px 80px rgba(0, 0, 0, 0.34),
+    0 0 46px rgba(56, 189, 248, 0.12);
+  backdrop-filter: blur(22px);
+  pointer-events: auto;
+}
+
+.audit-ai-input-console > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  color: #dbeafe;
+  background:
+    radial-gradient(circle, rgba(56, 189, 248, 0.28), rgba(37, 99, 235, 0.32));
+  font-weight: 900;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.2);
+}
+
+.audit-ai-input-console input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #eef6ff;
+  background: transparent;
+  font-size: 14px;
+}
+
+.audit-ai-input-console input::placeholder {
+  color: rgba(203, 213, 225, 0.58);
+}
+
+.audit-ai-input-console button {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 999px;
+  color: #eef6ff;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.82), rgba(14, 165, 233, 0.72));
+  box-shadow: 0 12px 34px rgba(37, 99, 235, 0.24);
+  cursor: pointer;
+}
+
+.audit-ai-input-console button:hover {
+  filter: brightness(1.08);
+}
+
+/* Los botones rápidos suben un poco para dejar respirar la consola. */
+.audit-command-layer .empty-workflow-start {
+  bottom: 104px !important;
+  top: auto !important;
+}
+
+.audit-command-layer .quick-start-strip {
+  opacity: 0.88;
+}
+
+.audit-workspace[data-scene='results'] .audit-command-layer .empty-workflow-start,
+.audit-workspace[data-scene='sources'] .audit-command-layer .empty-workflow-start,
+.audit-workspace[data-scene='technical'] .audit-command-layer .empty-workflow-start {
+  bottom: 104px;
+}
+
+/* Los objetos viven por encima del campo, pero no tapan la consola. */
+.audit-spatial-field {
+  z-index: 54;
+}
+
+.audit-spatial-object {
+  animation: audit-object-breathe 5.8s ease-in-out infinite;
+}
+
+.audit-spatial-object:nth-child(2n) {
+  animation-duration: 6.8s;
+}
+
+.audit-spatial-object:nth-child(3n) {
+  animation-duration: 7.4s;
+}
+
+@keyframes audit-object-breathe {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+
+@media (max-width: 1280px) {
+  .audit-spatial-composer {
+    width: min(680px, calc(100% - 120px));
+  }
+}
+
+@media (max-width: 860px) {
+  .audit-rail-toggle {
+    top: 12px;
+    left: 12px;
+  }
+
+  .audit-workspace-rail {
+    top: 54px;
+    left: 12px;
+  }
+
+  .audit-spatial-composer {
+    width: calc(100% - 34px);
+    bottom: 16px;
+  }
+
+  .audit-ai-response-stack {
+    bottom: 70px;
+  }
+
+  .audit-ai-input-console {
+    grid-template-columns: 36px minmax(0, 1fr);
+    border-radius: 24px;
+  }
+
+  .audit-ai-input-console button {
+    grid-column: 1 / -1;
+  }
+}
+
+/* end v0.8.6.5 */
+
+/* v0.8.6.6.1 - object workspace integration */
+
+.audit-legacy-command-layer {
+  display: none !important;
+}
+
+.audit-command-layer {
+  overflow: hidden;
+}
+
+.audit-workspace-context {
+  z-index: 180;
+}
+
+/* end v0.8.6.6.1 */

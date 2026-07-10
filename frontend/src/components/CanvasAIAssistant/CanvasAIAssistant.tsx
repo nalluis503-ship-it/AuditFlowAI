@@ -84,7 +84,7 @@ function CanvasAIAssistant({
     processPrompt(prompt)
   }
 
-  const useQuickPrompt = (value: string) => {
+  const handleQuickPrompt = (value: string) => {
     setPrompt(value)
     setIsOpen(true)
     processPrompt(value)
@@ -125,7 +125,7 @@ function CanvasAIAssistant({
               <button
                 type="button"
                 key={quickPrompt}
-                onClick={() => useQuickPrompt(quickPrompt)}
+                onClick={() => handleQuickPrompt(quickPrompt)}
               >
                 {quickPrompt}
               </button>
@@ -192,7 +192,7 @@ function CanvasAIAssistant({
                 <button
                   type="button"
                   key={quickPrompt}
-                  onClick={() => useQuickPrompt(quickPrompt)}
+                  onClick={() => handleQuickPrompt(quickPrompt)}
                 >
                   {quickPrompt}
                 </button>
@@ -349,3 +349,4 @@ function CanvasAIAssistant({
 }
 
 export default CanvasAIAssistant
+
