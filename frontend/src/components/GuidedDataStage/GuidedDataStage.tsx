@@ -1,234 +1,104 @@
-﻿import { useMemo, useState, type ChangeEvent } from 'react'
-import type {
-  GuidedAnalysisAction,
-  GuidedAnalysisFlowIntent,
-} from '../../intelligence/guidedAnalysisFlowPlanner'
+﻿import { useState, type ChangeEvent } from 'react'
 import './GuidedDataStage.css'
 
-type DataStageSourceType = 'excel' | 'csv' | 'sql-dump' | 'document' | 'unknown'
-
-type DataColumnRole =
-  | 'identifier'
-  | 'provider'
-  | 'contract'
-  | 'amount'
-  | 'date'
-  | 'status'
-  | 'description'
-  | 'unknown'
-
-type DataColumnProfile = {
-  name: string
-  detectedType: string
-  possibleRole: DataColumnRole
-  confidence: number
-}
-
-type DataFileProfile = {
+type RegisteredSource = {
   id: string
   name: string
   extension: string
-  sourceType: DataStageSourceType
-  rowEstimate: number
-  tableEstimate: number
-  columns: DataColumnProfile[]
-  alerts: string[]
-  suggestedActions: string[]
+  size: number
+  mimeType: string
+  lastModified: number
 }
 
-type GuidedDataStageProps = {
-  onCreateAnalysisFlow?: (intent: GuidedAnalysisFlowIntent) => void
-}
+const supportedExtensions = new Set(['xlsx', 'csv'])
 
 function getFileExtension(fileName: string) {
   const segments = fileName.toLowerCase().split('.')
-  return segments.length > 1 ? segments.at(-1) ?? '' : ''
+
+  return segments.length > 1
+    ? segments.at(-1) ?? ''
+    : ''
 }
 
-function detectSourceType(extension: string): DataStageSourceType {
-  if (['xlsx', 'xls'].includes(extension)) return 'excel'
-  if (extension === 'csv') return 'csv'
-  if (extension === 'sql') return 'sql-dump'
-  if (['pdf', 'doc', 'docx'].includes(extension)) return 'document'
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`
 
-  return 'unknown'
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`
+  }
+
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
-function inferColumnsFromName(fileName: string, sourceType: DataStageSourceType): DataColumnProfile[] {
-  const normalizedName = fileName.toLowerCase()
-
-  if (normalizedName.includes('pago') || normalizedName.includes('egreso')) {
-    return [
-      { name: 'folio_pago', detectedType: 'identificador', possibleRole: 'identifier', confidence: 92 },
-      { name: 'proveedor', detectedType: 'texto', possibleRole: 'provider', confidence: 88 },
-      { name: 'rfc', detectedType: 'texto', possibleRole: 'provider', confidence: 84 },
-      { name: 'contrato', detectedType: 'texto', possibleRole: 'contract', confidence: 79 },
-      { name: 'monto_pagado', detectedType: 'moneda', possibleRole: 'amount', confidence: 91 },
-      { name: 'fecha_pago', detectedType: 'fecha', possibleRole: 'date', confidence: 86 },
-    ]
-  }
-
-  if (normalizedName.includes('contrato')) {
-    return [
-      { name: 'numero_contrato', detectedType: 'identificador', possibleRole: 'contract', confidence: 93 },
-      { name: 'proveedor', detectedType: 'texto', possibleRole: 'provider', confidence: 86 },
-      { name: 'rfc_proveedor', detectedType: 'texto', possibleRole: 'provider', confidence: 82 },
-      { name: 'monto_autorizado', detectedType: 'moneda', possibleRole: 'amount', confidence: 89 },
-      { name: 'fecha_inicio', detectedType: 'fecha', possibleRole: 'date', confidence: 80 },
-      { name: 'estatus', detectedType: 'texto', possibleRole: 'status', confidence: 72 },
-    ]
-  }
-
-  if (sourceType === 'sql-dump') {
-    return [
-      { name: 'id_registro', detectedType: 'identificador', possibleRole: 'identifier', confidence: 78 },
-      { name: 'tabla_origen', detectedType: 'texto', possibleRole: 'description', confidence: 67 },
-      { name: 'fecha_movimiento', detectedType: 'fecha', possibleRole: 'date', confidence: 74 },
-      { name: 'importe', detectedType: 'moneda', possibleRole: 'amount', confidence: 70 },
-      { name: 'referencia', detectedType: 'texto', possibleRole: 'identifier', confidence: 66 },
-    ]
-  }
-
-  return [
-    { name: 'folio', detectedType: 'identificador', possibleRole: 'identifier', confidence: 68 },
-    { name: 'descripcion', detectedType: 'texto', possibleRole: 'description', confidence: 62 },
-    { name: 'fecha', detectedType: 'fecha', possibleRole: 'date', confidence: 60 },
-    { name: 'monto', detectedType: 'moneda', possibleRole: 'amount', confidence: 58 },
-  ]
-}
-
-function buildAlerts(columns: DataColumnProfile[], sourceType: DataStageSourceType) {
-  const alerts: string[] = []
-
-  if (sourceType === 'sql-dump') {
-    alerts.push('Archivo SQL tratado como exportación de datos; no requiere comandos del auditor.')
-  }
-
-  if (columns.some((column) => column.possibleRole === 'amount')) {
-    alerts.push('Se detectaron posibles columnas de importes para validación.')
-  }
-
-  if (columns.some((column) => column.possibleRole === 'contract')) {
-    alerts.push('Se detectaron campos que podrían servir para cruce contra contratos.')
-  }
-
-  if (alerts.length === 0) {
-    alerts.push('Estructura lista para revisión inicial.')
-  }
-
-  return alerts
-}
-
-function buildSuggestedActions(columns: DataColumnProfile[]) {
-  const actions = ['Perfilar columnas y tipos de datos']
-
-  if (columns.some((column) => column.possibleRole === 'amount')) {
-    actions.push('Comparar importes')
-  }
-
-  if (columns.some((column) => column.possibleRole === 'contract')) {
-    actions.push('Validar contra contratos')
-  }
-
-  if (columns.some((column) => column.possibleRole === 'identifier')) {
-    actions.push('Buscar duplicados')
-  }
-
-  actions.push('Crear análisis personalizado')
-
-  return actions
-}
-
-function createProfileFromFile(file: File, index: number): DataFileProfile {
-  const extension = getFileExtension(file.name)
-  const sourceType = detectSourceType(extension)
-  const columns = inferColumnsFromName(file.name, sourceType)
-
+function createRegisteredSource(
+  file: File,
+  index: number,
+): RegisteredSource {
   return {
-    id: `${file.name}-${file.size}-${index}`,
+    id: `${file.name}-${file.size}-${file.lastModified}-${index}`,
     name: file.name,
-    extension: extension || 'sin extensión',
-    sourceType,
-    rowEstimate: Math.max(120, Math.round(file.size / 128)),
-    tableEstimate: sourceType === 'sql-dump' ? 2 : 1,
-    columns,
-    alerts: buildAlerts(columns, sourceType),
-    suggestedActions: buildSuggestedActions(columns),
+    extension: getFileExtension(file.name) || 'sin extensión',
+    size: file.size,
+    mimeType: file.type || 'no informado por el navegador',
+    lastModified: file.lastModified,
   }
 }
 
-function getSourceTypeLabel(sourceType: DataStageSourceType) {
-  const labels: Record<DataStageSourceType, string> = {
-    excel: 'Excel',
-    csv: 'CSV',
-    'sql-dump': 'SQL exportado',
-    document: 'Documento',
-    unknown: 'Archivo',
-  }
+export default function GuidedDataStage() {
+  const [sources, setSources] = useState<RegisteredSource[]>([])
+  const [selectedSourceId, setSelectedSourceId] =
+    useState<string | null>(null)
+  const [rejectedFiles, setRejectedFiles] = useState<string[]>([])
 
-  return labels[sourceType]
-}
+  const selectedSource =
+    sources.find((source) => source.id === selectedSourceId)
+    ?? sources[0]
 
-function getRoleLabel(role: DataColumnRole) {
-  const labels: Record<DataColumnRole, string> = {
-    identifier: 'Clave / folio',
-    provider: 'Proveedor',
-    contract: 'Contrato',
-    amount: 'Importe',
-    date: 'Fecha',
-    status: 'Estatus',
-    description: 'Descripción',
-    unknown: 'Sin clasificar',
-  }
-
-  return labels[role]
-}
-
-export default function GuidedDataStage({ onCreateAnalysisFlow }: GuidedDataStageProps) {
-  const [profiles, setProfiles] = useState<DataFileProfile[]>([])
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
-
-  const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0]
-
-  const sharedColumnRoles = useMemo(() => {
-    const roleCount = new Map<DataColumnRole, number>()
-
-    profiles.forEach((profile) => {
-      const roles = new Set(profile.columns.map((column) => column.possibleRole))
-      roles.forEach((role) => roleCount.set(role, (roleCount.get(role) ?? 0) + 1))
-    })
-
-    return [...roleCount.entries()]
-      .filter(([role, count]) => role !== 'unknown' && count >= 2)
-      .map(([role]) => role)
-  }, [profiles])
-
-  const handleFilesSelected = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFilesSelected = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = Array.from(event.target.files ?? [])
-    const nextProfiles = files.map(createProfileFromFile)
 
-    setProfiles(nextProfiles)
-    setSelectedProfileId(nextProfiles[0]?.id ?? null)
-  }
+    const acceptedFiles = files.filter((file) =>
+      supportedExtensions.has(getFileExtension(file.name)),
+    )
 
-  const createFlow = (action: GuidedAnalysisAction) => {
-    onCreateAnalysisFlow?.({
-      action,
-      sourceFileIds: profiles.map((profile) => profile.id),
-    })
+    const rejected = files
+      .filter(
+        (file) =>
+          !supportedExtensions.has(getFileExtension(file.name)),
+      )
+      .map((file) => file.name)
+
+    const registeredSources =
+      acceptedFiles.map(createRegisteredSource)
+
+    setSources(registeredSources)
+    setSelectedSourceId(registeredSources[0]?.id ?? null)
+    setRejectedFiles(rejected)
+
+    event.target.value = ''
   }
 
   return (
-    <section className="guided-data-stage" aria-label="Mesa inteligente de análisis de datos">
+    <section
+      className="guided-data-stage"
+      aria-label="Fuentes de auditoría"
+    >
       <div className="guided-stage-backdrop" />
 
       <header className="guided-stage-hero">
         <div>
-          <span className="guided-stage-kicker">Mesa inteligente de auditoría</span>
-          <h2>Sube tus bases y deja que AuditFlow te diga qué contienen</h2>
+          <span className="guided-stage-kicker">
+            Fuentes de auditoría
+          </span>
+
+          <h2>Registra archivos reales antes de analizarlos</h2>
+
           <p>
-            Primero revisamos estructura, columnas, posibles campos de cruce y riesgos iniciales.
-            Después decides qué análisis quieres ejecutar.
+            Esta etapa solo muestra metadatos proporcionados por el
+            navegador. AuditFlow no inventa columnas, registros,
+            relaciones ni resultados.
           </p>
         </div>
 
@@ -236,15 +106,25 @@ export default function GuidedDataStage({ onCreateAnalysisFlow }: GuidedDataStag
           <input
             type="file"
             multiple
-            accept=".xlsx,.xls,.csv,.sql,.pdf,.doc,.docx"
+            accept=".xlsx,.csv"
             onChange={handleFilesSelected}
           />
-          <strong>Subir bases o evidencia</strong>
-          <span>Excel, CSV, SQL exportado, PDF o Word</span>
+
+          <strong>Seleccionar fuentes</strong>
+          <span>Excel XLSX o CSV ? sin procesamiento todavía</span>
         </label>
       </header>
 
-      {profiles.length === 0 ? (
+      {rejectedFiles.length > 0 && (
+        <div className="guided-stage-empty" role="status">
+          <div>
+            <strong>Archivos no admitidos</strong>
+            <p>{rejectedFiles.join(', ')}</p>
+          </div>
+        </div>
+      )}
+
+      {sources.length === 0 ? (
         <div className="guided-stage-empty">
           <div className="guided-stage-orbit">
             <span />
@@ -253,113 +133,98 @@ export default function GuidedDataStage({ onCreateAnalysisFlow }: GuidedDataStag
           </div>
 
           <div>
-            <strong>Esperando archivos</strong>
+            <strong>No hay fuentes registradas</strong>
+
             <p>
-              Sube una o más bases. AuditFlow las mostrará como objetos de análisis para que el
-              auditor no tenga que iniciar desde comandos o herramientas técnicas.
+              El siguiente checkpoint conectará esta vista con el
+              backend para almacenar, identificar y perfilar archivos
+              de manera verificable.
             </p>
           </div>
         </div>
       ) : (
         <div className="guided-stage-workspace">
           <div className="guided-stage-files">
-            {profiles.map((profile) => (
+            {sources.map((source) => (
               <button
-                key={profile.id}
+                key={source.id}
                 type="button"
-                className={`guided-file-card ${profile.id === selectedProfile?.id ? 'active' : ''}`}
-                onClick={() => setSelectedProfileId(profile.id)}
+                className={`guided-file-card ${
+                  source.id === selectedSource?.id ? 'active' : ''
+                }`}
+                onClick={() => setSelectedSourceId(source.id)}
               >
-                <span className="guided-file-type">{getSourceTypeLabel(profile.sourceType)}</span>
-                <strong>{profile.name}</strong>
-                <small>
-                  {profile.rowEstimate.toLocaleString()} registros estimados · {profile.columns.length}{' '}
-                  columnas
-                </small>
+                <span className="guided-file-type">
+                  {source.extension.toUpperCase()}
+                </span>
+
+                <strong>{source.name}</strong>
+                <small>{formatFileSize(source.size)}</small>
 
                 <div className="guided-file-columns">
-                  {profile.columns.slice(0, 4).map((column) => (
-                    <span key={`${profile.id}-${column.name}`}>{column.name}</span>
-                  ))}
+                  <span>Pendiente de procesamiento</span>
                 </div>
               </button>
             ))}
           </div>
 
           <div className="guided-stage-detail">
-            {selectedProfile && (
+            {selectedSource && (
               <>
                 <div className="guided-detail-header">
                   <div>
-                    <span>{getSourceTypeLabel(selectedProfile.sourceType)}</span>
-                    <h3>{selectedProfile.name}</h3>
+                    <span>Fuente registrada</span>
+                    <h3>{selectedSource.name}</h3>
                   </div>
 
                   <div className="guided-detail-metrics">
-                    <strong>{selectedProfile.rowEstimate.toLocaleString()}</strong>
-                    <small>registros estimados</small>
+                    <strong>
+                      {formatFileSize(selectedSource.size)}
+                    </strong>
+                    <small>tamaño real</small>
                   </div>
                 </div>
 
                 <div className="guided-detail-grid">
                   <article>
-                    <h4>Columnas detectadas</h4>
+                    <h4>Metadatos disponibles</h4>
 
-                    <div className="guided-column-list">
-                      {selectedProfile.columns.map((column) => (
-                        <div key={`${selectedProfile.id}-${column.name}`} className="guided-column-row">
-                          <div>
-                            <strong>{column.name}</strong>
-                            <small>{column.detectedType}</small>
-                          </div>
+                    <ul className="guided-alert-list">
+                      <li>
+                        Extensión: {selectedSource.extension}
+                      </li>
 
-                          <span>{getRoleLabel(column.possibleRole)}</span>
-                        </div>
-                      ))}
-                    </div>
+                      <li>
+                        Tipo MIME: {selectedSource.mimeType}
+                      </li>
+
+                      <li>
+                        Última modificación:{' '}
+                        {new Date(
+                          selectedSource.lastModified,
+                        ).toLocaleString('es-MX')}
+                      </li>
+                    </ul>
                   </article>
 
                   <article>
-                    <h4>Lectura inteligente</h4>
+                    <h4>Estado del procesamiento</h4>
 
                     <ul className="guided-alert-list">
-                      {selectedProfile.alerts.map((alert) => (
-                        <li key={alert}>{alert}</li>
-                      ))}
+                      <li>
+                        El archivo aún no se ha enviado al backend.
+                      </li>
+
+                      <li>
+                        No se han leído hojas, columnas ni registros.
+                      </li>
+
+                      <li>
+                        No existe ningún resultado de auditoría
+                        generado.
+                      </li>
                     </ul>
-
-                    {sharedColumnRoles.length > 0 && (
-                      <div className="guided-relationship-box">
-                        <strong>Relaciones sugeridas</strong>
-                        <p>
-                          Detecté campos compatibles entre archivos:{' '}
-                          {sharedColumnRoles.map(getRoleLabel).join(', ')}.
-                        </p>
-                      </div>
-                    )}
                   </article>
-                </div>
-
-                <div className="guided-actions-panel">
-                  <div>
-                    <span>Siguiente paso</span>
-                    <strong>Elige qué quieres revisar con estas bases</strong>
-                  </div>
-
-                  <div className="guided-action-buttons">
-                    <button type="button" onClick={() => createFlow('compare-datasets')}>
-                      Comparar bases
-                    </button>
-                    <button type="button" onClick={() => createFlow('detect-duplicates')}>
-                      Buscar duplicados
-                    </button>
-                    <button type="button" onClick={() => createFlow('validate-payments')}>
-                      Validar pagos
-                    </button>
-                    <button type="button" onClick={() => createFlow('custom-analysis')}>
-                      Pedir análisis personalizado
-                    </button>
-                  </div>
                 </div>
               </>
             )}
@@ -369,4 +234,3 @@ export default function GuidedDataStage({ onCreateAnalysisFlow }: GuidedDataStag
     </section>
   )
 }
-

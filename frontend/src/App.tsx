@@ -33,10 +33,6 @@ import {
   type AuditFlowNode,
   type NodeFileMeta,
 } from './components/WorkflowNode'
-import {
-  getGuidedAnalysisActionIds,
-  type GuidedAnalysisFlowIntent,
-} from './intelligence/guidedAnalysisFlowPlanner'
 
 const initialNodes: AuditFlowNode[] = []
 
@@ -355,15 +351,6 @@ function App() {
     addFlowFromSelections(getRecommendationPlan(recommendation))
   }
 
-  const handleGuidedAnalysisFlow = (intent: GuidedAnalysisFlowIntent) => {
-    const selections = getGuidedAnalysisActionIds(intent)
-      .map(findToolActionByActionId)
-      .filter((selection): selection is ToolActionSelection => Boolean(selection))
-
-    addFlowFromSelections(selections)
-    setWorkspaceMode('technical')
-  }
-
   const saveLearningNeed = (
     recommendation: CanvasAIRecommendation,
     prompt: string,
@@ -501,9 +488,7 @@ function App() {
           )}
         </>
       )}
-      dataLayer={(
-        <GuidedDataStage onCreateAnalysisFlow={handleGuidedAnalysisFlow} />
-      )}
+      dataLayer={<GuidedDataStage />}
       technicalLayer={(
         <div
           className="audit-technical-shell"
