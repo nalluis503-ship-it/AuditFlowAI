@@ -20,6 +20,7 @@ Thumbs.db
 # Local data
 datasets/raw/
 datasets/private/
+backend/storage/
 
 # Python / Backend
 backend/.venv/
