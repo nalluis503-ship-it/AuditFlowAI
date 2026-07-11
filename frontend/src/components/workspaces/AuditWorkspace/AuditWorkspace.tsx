@@ -22,7 +22,6 @@ type AuditWorkspaceProps = {
   onFocusChange: (
     focus: AuditWorkspaceFocus,
   ) => void
-  onRunWorkflow: () => void
   onOpenTools: () => void
   onCreateRecommendedFlow?: (
     recommendation: CanvasAIRecommendation,
@@ -49,7 +48,6 @@ function AuditWorkspace({
   learningNeedCount,
   dataSourceCount,
   onFocusChange,
-  onRunWorkflow,
   onOpenTools,
   onCreateRecommendedFlow,
   commandLayer,
@@ -120,12 +118,6 @@ function AuditWorkspace({
             Herramientas
           </button>
 
-          <button
-            type="button"
-            onClick={onRunWorkflow}
-          >
-            Ejecutar
-          </button>
         </div>
       </header>
 

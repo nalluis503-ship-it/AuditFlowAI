@@ -12,7 +12,6 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import './App.css'
-import { applyExecutionResultToNodeData, executeWorkflowNode, sortNodesForExecution } from './engine/workflowExecutionEngine'
 import ToolLibrary from './components/ToolLibrary/ToolLibrary'
 import SmartConnectMenu from './components/SmartConnect/SmartConnectMenu'
 import NodeEditor from './components/NodeEditor'
@@ -464,111 +463,6 @@ function App() {
     : null
 
 
-  const sleep = (milliseconds: number) =>
-    new Promise((resolve) => window.setTimeout(resolve, milliseconds))
-
-  const runWorkflow = async () => {
-    if (nodes.length === 0) return
-
-    const orderedNodes = sortNodesForExecution(nodes)
-    const completedNodeIds = new Set<string>()
-
-    for (const workflowNode of orderedNodes) {
-      setNodes((currentNodes) =>
-        currentNodes.map((currentNode) =>
-          currentNode.id === workflowNode.id
-            ? {
-                ...currentNode,
-                data: {
-                  ...currentNode.data,
-                  status: 'running',
-                  summary: 'Ejecutando...',
-                  resultSummary: ['Nodo en ejecución visual.'],
-                },
-              }
-            : currentNode,
-        ),
-      )
-
-      await sleep(650)
-
-      const currentSnapshotNode =
-        nodes.find((node) => node.id === workflowNode.id) ?? workflowNode
-
-      const result = executeWorkflowNode(currentSnapshotNode, {
-        nodes: orderedNodes,
-        edges,
-        completedNodeIds,
-      })
-
-      setNodes((currentNodes) =>
-        currentNodes.map((currentNode) =>
-          currentNode.id === workflowNode.id
-            ? {
-                ...currentNode,
-                data: applyExecutionResultToNodeData(currentNode.data, result),
-              }
-            : currentNode,
-        ),
-      )
-
-      if (result.status === 'success') {
-        completedNodeIds.add(workflowNode.id)
-      }
-
-      await sleep(220)
-    }
-  }
-
-  const runSingleNode = async (nodeId: string) => {
-    const targetNode = nodes.find((node) => node.id === nodeId)
-
-    if (!targetNode) return
-
-    setNodes((currentNodes) =>
-      currentNodes.map((currentNode) =>
-        currentNode.id === nodeId
-          ? {
-              ...currentNode,
-              data: {
-                ...currentNode.data,
-                status: 'running',
-                summary: 'Ejecutando...',
-                resultSummary: ['Nodo en ejecución visual.'],
-              },
-            }
-          : currentNode,
-      ),
-    )
-
-    await sleep(650)
-
-    const completedNodeIds = new Set(
-      nodes
-        .filter((node) => node.id !== nodeId && node.data.status === 'success')
-        .map((node) => node.id),
-    )
-
-    const currentSnapshotNode =
-      nodes.find((node) => node.id === nodeId) ?? targetNode
-
-    const result = executeWorkflowNode(currentSnapshotNode, {
-      nodes,
-      edges,
-      completedNodeIds,
-    })
-
-    setNodes((currentNodes) =>
-      currentNodes.map((currentNode) =>
-        currentNode.id === nodeId
-          ? {
-              ...currentNode,
-              data: applyExecutionResultToNodeData(currentNode.data, result),
-            }
-          : currentNode,
-      ),
-    )
-  }
   return (
     <AuditWorkspace
       activeFocus={workspaceMode}
@@ -577,7 +471,6 @@ function App() {
       learningNeedCount={learningNeeds.length}
       dataSourceCount={0}
       onFocusChange={setWorkspaceMode}
-      onRunWorkflow={runWorkflow}
       onOpenTools={openLibrary}
       commandLayer={(
         <>
@@ -668,7 +561,6 @@ function App() {
               onClose={closeNodeEditor}
               onAttachFiles={handleAttachFiles}
               onSuggestNextNode={suggestNextNodeFromEditor}
-              onRunNode={runSingleNode}
             />
           )}
 

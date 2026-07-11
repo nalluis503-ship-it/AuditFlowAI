@@ -16,7 +16,6 @@ type NodeEditorProps = {
   onClose: () => void
   onAttachFiles: (nodeId: string, files: NodeFileMeta[]) => void
   onSuggestNextNode: (nodeId: string) => void
-  onRunNode: (nodeId: string) => void
 }
 
 type EditorTab = 'config' | 'execution' | 'results' | 'trace' | 'ai'
@@ -149,7 +148,6 @@ function NodeEditor({
   onClose,
   onAttachFiles,
   onSuggestNextNode,
-  onRunNode,
 }: NodeEditorProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>('config')
   const status = node.data.status ?? 'idle'
@@ -297,14 +295,12 @@ function NodeEditor({
               </article>
             </div>
 
-            <button
-              className="node-editor-primary"
-              type="button"
-              disabled={status === 'running'}
-              onClick={() => onRunNode(node.id)}
-            >
-              {status === 'running' ? 'Ejecutando...' : 'Ejecutar este nodo'}
-            </button>
+            <div className="node-editor-empty-result">
+              <strong>Ejecución todavía no disponible</strong>
+              <small>
+                Este paso permanece planificado hasta conectarse a una capacidad backend real.
+              </small>
+            </div>
           </div>
         )}
 
