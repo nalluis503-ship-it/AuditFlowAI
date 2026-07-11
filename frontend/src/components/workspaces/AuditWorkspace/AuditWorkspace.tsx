@@ -1,11 +1,9 @@
-﻿import {
+import {
   useState,
   type ReactNode,
 } from 'react'
-import type {
-  CanvasAIRecommendation,
-} from '../../../intelligence'
 import ObjectWorkspaceStage from './ObjectWorkspace'
+import { useWorkspaceSources } from './WorkspaceSources'
 import './AuditWorkspace.css'
 
 export type AuditWorkspaceFocus =
@@ -17,16 +15,10 @@ type AuditWorkspaceProps = {
   activeFocus: AuditWorkspaceFocus
   nodeCount: number
   edgeCount: number
-  learningNeedCount: number
-  dataSourceCount: number
   onFocusChange: (
     focus: AuditWorkspaceFocus,
   ) => void
   onOpenTools: () => void
-  onCreateRecommendedFlow?: (
-    recommendation: CanvasAIRecommendation,
-  ) => void
-  commandLayer: ReactNode
   dataLayer: ReactNode
   technicalLayer: ReactNode
   overlayLayer?: ReactNode
@@ -36,7 +28,7 @@ const focusLabels: Record<
   AuditWorkspaceFocus,
   string
 > = {
-  command: 'IA',
+  command: 'Análisis',
   data: 'Fuentes',
   technical: 'Flujo técnico',
 }
@@ -45,12 +37,8 @@ function AuditWorkspace({
   activeFocus,
   nodeCount,
   edgeCount,
-  learningNeedCount,
-  dataSourceCount,
   onFocusChange,
   onOpenTools,
-  onCreateRecommendedFlow,
-  commandLayer,
   dataLayer,
   technicalLayer,
   overlayLayer,
@@ -64,6 +52,8 @@ function AuditWorkspace({
     isContextOpen,
     setIsContextOpen,
   ] = useState(false)
+
+  const { readySourceCount } = useWorkspaceSources()
 
   const changeFocus = (
     focus: AuditWorkspaceFocus,
@@ -97,15 +87,15 @@ function AuditWorkspace({
           className="audit-workspace-command-bar"
           aria-label="Estado del campo inteligente"
         >
-          <span>IA</span>
+          <span>AF</span>
 
           <div className="audit-workspace-command-copy">
             <strong>
-              Centro de análisis activo
+              Centro de análisis disponible
             </strong>
 
             <small>
-              Los objetos aparecen cuando el auditor los solicita; nada invade el campo automáticamente.
+              Las fuentes procesadas son reales; las solicitudes sin ejecutor quedan pendientes.
             </small>
           </div>
         </div>
@@ -218,9 +208,6 @@ function AuditWorkspace({
             ].join(' ')}
           >
             <ObjectWorkspaceStage
-              onCreateRecommendedFlow={
-                onCreateRecommendedFlow
-              }
               onOpenTools={
                 onOpenTools
               }
@@ -231,12 +218,6 @@ function AuditWorkspace({
               }
             />
 
-            <div
-              className="audit-legacy-command-layer"
-              aria-hidden="true"
-            >
-              {commandLayer}
-            </div>
           </div>
 
           <div
@@ -310,7 +291,7 @@ function AuditWorkspace({
             <article>
               <span>Fuentes</span>
               <strong>
-                {dataSourceCount}
+                {readySourceCount}
               </strong>
             </article>
 
@@ -328,12 +309,6 @@ function AuditWorkspace({
               </strong>
             </article>
 
-            <article>
-              <span>Aprendizajes</span>
-              <strong>
-                {learningNeedCount}
-              </strong>
-            </article>
           </section>
         </aside>
       </section>

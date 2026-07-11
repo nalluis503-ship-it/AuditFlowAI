@@ -1,4 +1,4 @@
-﻿export type NodeDataType =
+export type NodeDataType =
   | 'file'
   | 'excel'
   | 'pdf'
@@ -25,7 +25,7 @@ export type ToolAction = {
   description: string
   inputTypes: NodeDataType[]
   outputType: NodeDataType
-  aiSuggested: boolean
+  suggested: boolean
   requiresConfiguration: boolean
 }
 
@@ -42,12 +42,6 @@ export type ToolDefinition = {
 }
 
 export const toolCategories: ToolCategory[] = [
-  {
-    id: 'ai',
-    icon: 'AI',
-    title: 'IA',
-    description: 'Agentes, analisis, redaccion, riesgos y ayuda inteligente.',
-  },
   {
     id: 'data-analysis',
     icon: 'DATA',
@@ -110,7 +104,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Seleccionar un archivo Excel para usarlo como fuente de datos.',
         inputTypes: ['file', 'unknown'],
         outputType: 'excel',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -120,7 +114,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Ver hojas, columnas y primeras filas del Excel cargado.',
         inputTypes: ['excel'],
         outputType: 'excel',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: false,
       },
     ],
@@ -142,7 +136,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Crear una tabla SQL temporal a partir del archivo Excel.',
         inputTypes: ['excel'],
         outputType: 'sqlDataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -152,7 +146,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Renombrar y limpiar columnas para analisis posterior.',
         inputTypes: ['excel'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -174,7 +168,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Visualizar registros, columnas y filtros basicos.',
         inputTypes: ['dataset', 'sqlDataset', 'excel'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: false,
       },
       {
@@ -184,7 +178,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Detectar columnas, tipos, nulos y valores unicos.',
         inputTypes: ['dataset', 'sqlDataset', 'excel'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: false,
       },
     ],
@@ -206,7 +200,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Buscar duplicados por campos identicos.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -216,7 +210,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Buscar registros repetidos por RFC o identificador fiscal.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -226,7 +220,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Buscar pagos repetidos por beneficiario, monto, fecha o folio.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -248,7 +242,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Cruzar pagos contra contratos, proveedores, facturas, montos, fechas y soporte documental.',
         inputTypes: ['dataset', 'sqlDataset', 'excel'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -258,7 +252,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Cruzar pagos contra comprobantes o documentos de soporte.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -280,7 +274,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Cruzar bases por folio, RFC, CURP, proveedor u otro campo.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -290,7 +284,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Encontrar registros que no aparecen en otra base.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -312,7 +306,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Seleccionar documentos PDF o evidencia documental para revision.',
         inputTypes: ['file', 'unknown'],
         outputType: 'pdf',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -322,7 +316,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Abrir visor de PDF con busqueda y navegacion por paginas.',
         inputTypes: ['pdf', 'document', 'file'],
         outputType: 'document',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -332,49 +326,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Extraer texto del PDF para analisis.',
         inputTypes: ['pdf', 'document', 'file'],
         outputType: 'document',
-        aiSuggested: true,
-        requiresConfiguration: true,
-      },
-    ],
-  },
-  {
-    id: 'ai-auditor',
-    icon: 'AI',
-    name: 'IA Auditora',
-    categoryId: 'ai',
-    description: 'Analiza datos, documentos y resultados para sugerir acciones.',
-    inputTypes: ['dataset', 'sqlDataset', 'document', 'auditResult', 'unknown'],
-    outputType: 'auditResult',
-    capabilities: ['ai', 'risk', 'explain', 'suggest-nodes', 'draft-observation'],
-    actions: [
-      {
-        id: 'ai-suggest-next-step',
-        icon: 'NEXT',
-        name: 'Sugerir siguiente nodo',
-        description: 'La IA recomienda que accion agregar al workflow.',
-        inputTypes: ['dataset', 'sqlDataset', 'document', 'auditResult', 'unknown'],
-        outputType: 'control',
-        aiSuggested: true,
-        requiresConfiguration: false,
-      },
-      {
-        id: 'ai-explain-results',
-        icon: 'EX',
-        name: 'Explicar resultado',
-        description: 'Explica hallazgos, tablas o inconsistencias detectadas.',
-        inputTypes: ['dataset', 'sqlDataset', 'auditResult'],
-        outputType: 'auditResult',
-        aiSuggested: true,
-        requiresConfiguration: false,
-      },
-      {
-        id: 'ai-draft-observation',
-        icon: 'OBS',
-        name: 'Redactar observacion',
-        description: 'Redacta una observacion tecnica con base en evidencia.',
-        inputTypes: ['auditResult', 'document', 'dataset'],
-        outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -396,7 +348,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Crear hallazgo preliminar desde un resultado de analisis.',
         inputTypes: ['auditResult', 'document', 'dataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -406,7 +358,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Relacionar documentos, tablas o resultados con un hallazgo.',
         inputTypes: ['auditResult', 'document', 'dataset'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -428,7 +380,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Generar resumen ejecutivo del analisis.',
         inputTypes: ['auditResult', 'dataset', 'document'],
         outputType: 'report',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -438,7 +390,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Exportar resultados en un reporte PDF.',
         inputTypes: ['auditResult', 'dataset', 'document'],
         outputType: 'report',
-        aiSuggested: false,
+        suggested: false,
         requiresConfiguration: true,
       },
     ],
@@ -460,7 +412,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Configurar conexión a MySQL, PostgreSQL, SQL Server, Oracle o SQLite.',
         inputTypes: ['unknown'],
         outputType: 'sqlDataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -470,7 +422,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Listar tablas, columnas, tipos de dato, llaves y relaciones posibles.',
         inputTypes: ['sqlDataset'],
         outputType: 'sqlDataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: false,
       },
       {
@@ -480,7 +432,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Ejecutar consultas SELECT para análisis sin modificar la base.',
         inputTypes: ['sqlDataset'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -502,7 +454,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Seleccionar un archivo CSV como fuente de datos.',
         inputTypes: ['file', 'unknown'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -512,7 +464,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Detectar delimitador, encabezados, columnas y codificación.',
         inputTypes: ['dataset', 'file'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: false,
       },
     ],
@@ -534,7 +486,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Eliminar espacios, caracteres extraños, nulos, formatos inconsistentes y duplicados simples.',
         inputTypes: ['dataset', 'sqlDataset', 'excel'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -544,7 +496,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Normalizar nombres de columnas para facilitar cruces y validaciones.',
         inputTypes: ['dataset', 'sqlDataset', 'excel'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -566,7 +518,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Generar una muestra priorizando montos altos, recurrencia, proveedores o anomalías.',
         inputTypes: ['dataset', 'sqlDataset', 'auditResult'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -576,7 +528,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Generar una muestra aleatoria documentada para revisión.',
         inputTypes: ['dataset', 'sqlDataset'],
         outputType: 'dataset',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -598,7 +550,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Clasificar hallazgos o resultados por impacto, probabilidad y prioridad.',
         inputTypes: ['auditResult', 'dataset', 'document'],
         outputType: 'auditResult',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -620,7 +572,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Crear cédula con objetivo, procedimiento, resultado, evidencia y conclusión.',
         inputTypes: ['auditResult', 'dataset', 'document'],
         outputType: 'document',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -630,7 +582,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Crear anexo con archivo, tabla, fila, documento, página y evidencia relacionada.',
         inputTypes: ['auditResult', 'dataset', 'document'],
         outputType: 'document',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -652,7 +604,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Generar un documento Word editable desde resultados, hallazgos o una plantilla.',
         inputTypes: ['auditResult', 'document', 'report', 'unknown'],
         outputType: 'word',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -662,7 +614,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Preparar o modificar una plantilla institucional para informes, cédulas o anexos.',
         inputTypes: ['word', 'document', 'unknown'],
         outputType: 'word',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -672,7 +624,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Insertar hallazgos, recomendaciones y evidencia en un documento Word editable.',
         inputTypes: ['auditResult', 'document'],
         outputType: 'word',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -694,7 +646,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Revisar documentos para identificar soporte, anexos, firmas, fechas y evidencia clave.',
         inputTypes: ['pdf', 'word', 'document', 'file'],
         outputType: 'document',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
       {
@@ -704,7 +656,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Marcar fragmentos, páginas o secciones como evidencia relacionada con un hallazgo.',
         inputTypes: ['pdf', 'word', 'document'],
         outputType: 'document',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -726,7 +678,7 @@ export const toolCatalog: ToolDefinition[] = [
         description: 'Generar Excel con resultados, diferencias, hallazgos y trazabilidad.',
         inputTypes: ['auditResult', 'dataset'],
         outputType: 'report',
-        aiSuggested: true,
+        suggested: true,
         requiresConfiguration: true,
       },
     ],
@@ -764,8 +716,5 @@ export function getSuggestedActionsForOutput(outputType: NodeDataType) {
         action,
       })),
     )
-    .filter(({ action }) => action.aiSuggested && action.inputTypes.includes(outputType))
+    .filter(({ action }) => action.suggested && action.inputTypes.includes(outputType))
 }
-
-
-

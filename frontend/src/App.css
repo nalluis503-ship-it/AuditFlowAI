@@ -1,4 +1,4 @@
-﻿* {
+* {
   box-sizing: border-box;
 }
 
@@ -406,67 +406,6 @@ button {
 .smart-connect-floating-panel .smart-connect-menu {
   position: static;
 }
-/* Experiment v0.5 - Learning memory dock */
-
-.learning-memory-dock {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  width: 310px;
-  z-index: 36;
-  border-radius: 24px;
-  border: 1px solid rgba(125, 211, 252, 0.22);
-  background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 42%),
-    rgba(15, 23, 42, 0.88);
-  color: #e5e7eb;
-  padding: 16px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(16px);
-}
-
-.learning-memory-dock > span {
-  display: block;
-  color: #7dd3fc;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.learning-memory-dock > strong {
-  display: block;
-  margin-top: 7px;
-  font-size: 15px;
-}
-
-.learning-memory-dock div {
-  display: grid;
-  gap: 9px;
-  margin-top: 13px;
-}
-
-.learning-memory-dock article {
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.62);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  padding: 10px;
-}
-
-.learning-memory-dock article small {
-  display: block;
-  color: #93c5fd;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.learning-memory-dock article p {
-  margin: 5px 0 0;
-  color: #cbd5e1;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
 /* Experiment v0.6 - Fixed workflow viewport like n8n */
 
 html,

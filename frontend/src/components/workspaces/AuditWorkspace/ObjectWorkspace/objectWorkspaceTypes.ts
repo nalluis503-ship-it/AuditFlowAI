@@ -1,4 +1,6 @@
-﻿export type WorkspaceObjectKind =
+﻿import type { SourceProfile } from '../../../../api/sourceApi'
+
+export type WorkspaceObjectKind =
   | 'source'
   | 'tool'
   | 'result'
@@ -9,7 +11,10 @@
 
 export type WorkspaceObjectStatus =
   | 'available'
+  | 'queued'
+  | 'processing'
   | 'ready'
+  | 'failed'
   | 'draft'
   | 'warning'
 
@@ -30,6 +35,8 @@ export type WorkspaceObject = {
   format?: string
   file?: File
   previewUrl?: string
+  sourceId?: string
+  sourceProfile?: SourceProfile
   sourceIds?: string[]
   previewLines?: string[]
   createdAt: number

@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Background,
   Controls,
@@ -16,14 +16,13 @@ import ToolLibrary from './components/ToolLibrary/ToolLibrary'
 import SmartConnectMenu from './components/SmartConnect/SmartConnectMenu'
 import NodeEditor from './components/NodeEditor'
 import GuidedDataStage from './components/GuidedDataStage'
-import CanvasAIAssistant, {
-  type CanvasAIRecommendation,
-} from './components/CanvasAIAssistant'
 import AuditWorkspace, {
   type AuditWorkspaceFocus,
 } from './components/workspaces/AuditWorkspace'
 import {
-  toolCatalog,
+  WorkspaceSourcesProvider,
+} from './components/workspaces/AuditWorkspace/WorkspaceSources'
+import {
   type NodeDataType,
   type ToolAction,
   type ToolDefinition,
@@ -43,32 +42,11 @@ type SmartConnectContext = {
   outputType: NodeDataType
 }
 
-type LearningNeed = {
-  id: string
-  prompt: string
-  type: CanvasAIRecommendation['type']
-  title: string
-  developerNeed?: string
-  createdAt: string
-}
-
-type ToolActionSelection = {
-  tool: ToolDefinition
-  action: ToolAction
-}
 
 type WorkspaceMode = AuditWorkspaceFocus
 
-function normalize(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-}
 
-function getNodeVariant(tool: ToolDefinition): 'excel' | 'mysql' | 'ai' {
-  if (tool.categoryId === 'ai') return 'ai'
-
+function getNodeVariant(tool: ToolDefinition): 'excel' | 'mysql' {
   if (
     tool.categoryId === 'documents' ||
     tool.categoryId === 'viewers' ||
@@ -81,149 +59,11 @@ function getNodeVariant(tool: ToolDefinition): 'excel' | 'mysql' | 'ai' {
   return 'mysql'
 }
 
-function findToolActionByKeywords(
-  toolKeywords: string[],
-  actionKeywords: string[] = [],
-): ToolActionSelection | null {
-  const normalizedToolKeywords = toolKeywords.map(normalize)
-  const normalizedActionKeywords = actionKeywords.map(normalize)
-
-  const tool = toolCatalog.find((candidateTool) => {
-    const searchableTool = normalize(
-      `${candidateTool.id} ${candidateTool.name} ${candidateTool.categoryId} ${candidateTool.outputType ?? ''}`,
-    )
-
-    return normalizedToolKeywords.some((keyword) => searchableTool.includes(keyword))
-  })
-
-  if (!tool) return null
-
-  const action =
-    tool.actions.find((candidateAction) => {
-      const searchableAction = normalize(
-        `${candidateAction.id} ${candidateAction.name} ${candidateAction.outputType ?? ''}`,
-      )
-
-      return normalizedActionKeywords.some((keyword) => searchableAction.includes(keyword))
-    }) ?? tool.actions[0]
-
-  if (!action) return null
-
-  return {
-    tool,
-    action,
-  }
-}
-
-function findToolActionByActionId(actionId: string): ToolActionSelection | null {
-  for (const tool of toolCatalog) {
-    const action = tool.actions.find((candidateAction) => candidateAction.id === actionId)
-
-    if (action) {
-      return {
-        tool,
-        action,
-      }
-    }
-  }
-
-  return null
-}
-function getRecommendationPlan(
-  recommendation: CanvasAIRecommendation,
-): ToolActionSelection[] {
-  const removeDuplicateSelections = (selections: ToolActionSelection[]) =>
-    selections.filter((selection, index, currentSelections) => {
-      const key = `${selection.tool.id}-${selection.action.id}`
-
-      return currentSelections.findIndex((currentSelection) =>
-        `${currentSelection.tool.id}-${currentSelection.action.id}` === key
-      ) === index
-    })
-
-  if (recommendation.workflowPlan?.toolSteps?.length) {
-    const plannedSelections = recommendation.workflowPlan.toolSteps
-      .map((step) =>
-        step.actionId
-          ? findToolActionByActionId(step.actionId) ?? findToolActionByKeywords(step.toolKeywords, step.actionKeywords)
-          : findToolActionByKeywords(step.toolKeywords, step.actionKeywords),
-      )
-      .filter((selection): selection is ToolActionSelection => Boolean(selection))
-
-    if (plannedSelections.length > 0) return plannedSelections
-  }
-
-  const blueprints: Record<CanvasAIRecommendation['type'], Array<{
-    toolKeywords: string[]
-    actionKeywords?: string[]
-  }>> = {
-    'database-analysis': [
-      { toolKeywords: ['sql', 'mysql', 'base', 'database'], actionKeywords: ['conectar', 'consultar', 'sql'] },
-      { toolKeywords: ['viewer', 'visualizador', 'vista', 'datos'], actionKeywords: ['visualizar', 'perfil', 'ver'] },
-      { toolKeywords: ['ai', 'ia', 'auditor'], actionKeywords: ['sugerir', 'analizar'] },
-    ],
-    'file-review': [
-      { toolKeywords: ['pdf', 'documento', 'evidencia', 'archivo'], actionKeywords: ['pdf', 'documento', 'cargar', 'visualizar'] },
-      { toolKeywords: ['viewer', 'visualizador', 'vista', 'datos'], actionKeywords: ['visualizar', 'perfil', 'ver'] },
-      { toolKeywords: ['ai', 'ia', 'auditor'], actionKeywords: ['analizar', 'sugerir'] },
-    ],
-    'payment-validation': [
-      { toolKeywords: ['upload', 'subir', 'excel', 'archivo'], actionKeywords: ['subir', 'cargar'] },
-      { toolKeywords: ['payment-validation', 'validar pagos', 'pago'], actionKeywords: ['validar pagos contra contratos', 'validar pagos', 'pago'] },
-      { toolKeywords: ['audit-finding', 'hallazgo', 'finding'], actionKeywords: ['crear hallazgo', 'hallazgo', 'generar'] },
-    ],
-    findings: [
-      { toolKeywords: ['hallazgo', 'finding', 'audit'], actionKeywords: ['hallazgo', 'generar'] },
-      { toolKeywords: ['report', 'reporte', 'informe'], actionKeywords: ['reporte', 'generar'] },
-    ],
-    report: [
-      { toolKeywords: ['report', 'reporte', 'informe'], actionKeywords: ['reporte', 'generar'] },
-    ],
-    general: [
-      { toolKeywords: ['ai', 'ia', 'auditor'], actionKeywords: ['sugerir', 'analizar'] },
-    ],
-  }
-
-  const selections = blueprints[recommendation.type]
-    .map((blueprint) =>
-      findToolActionByKeywords(blueprint.toolKeywords, blueprint.actionKeywords),
-    )
-    .filter((selection): selection is ToolActionSelection => Boolean(selection))
-
-  const uniqueSelections = removeDuplicateSelections(selections)
-
-  if (uniqueSelections.length > 0) return uniqueSelections
-
-  const fallbackTool = toolCatalog[0]
-  const fallbackAction = fallbackTool?.actions[0]
-
-  if (!fallbackTool || !fallbackAction) return []
-
-  return [
-    {
-      tool: fallbackTool,
-      action: fallbackAction,
-    },
-  ]
-}
-
-function readLearningNeedsFromStorage(): LearningNeed[] {
-  try {
-    const storedValue = window.localStorage.getItem('auditflow.learningNeeds')
-
-    if (!storedValue) return []
-
-    return JSON.parse(storedValue) as LearningNeed[]
-  } catch {
-    return []
-  }
-}
 
 function App() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false)
   const [smartConnectContext, setSmartConnectContext] = useState<SmartConnectContext | null>(null)
   const [openNodeId, setOpenNodeId] = useState<string | null>(null)
-  const [learningNeeds, setLearningNeeds] = useState<LearningNeed[]>(readLearningNeedsFromStorage)
   const [nodes, setNodes, onNodesChange] = useNodesState<AuditFlowNode>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('command')
@@ -311,68 +151,6 @@ function App() {
     setNodes((currentNodes) => [...currentNodes, newNode])
   }
 
-  const addRecommendedNode = (recommendation: CanvasAIRecommendation) => {
-    const [selection] = getRecommendationPlan(recommendation)
-
-    if (!selection) return
-
-    addToolNode(selection.tool, selection.action)
-  }
-
-  const addFlowFromSelections = (selections: ToolActionSelection[]) => {
-    if (selections.length === 0) return
-
-    const timestamp = Date.now()
-    const baseX = nodes.length > 0 ? 220 + nodes.length * 80 : 180
-    const baseY = nodes.length > 0 ? 380 : 230
-
-    const recommendedNodes: AuditFlowNode[] = selections.map((selection, index) => ({
-      id: `ai-${selection.tool.id}-${selection.action.id}-${timestamp}-${index}`,
-      type: 'auditNode',
-      position: {
-        x: baseX + index * 300,
-        y: baseY + (index % 2) * 36,
-      },
-      data: createNodeData(selection.tool, selection.action),
-    }))
-
-    const recommendedEdges: Edge[] = recommendedNodes.slice(1).map((node, index) => ({
-      id: `${recommendedNodes[index].id}-${node.id}`,
-      source: recommendedNodes[index].id,
-      target: node.id,
-      animated: true,
-    }))
-
-    setNodes((currentNodes) => [...currentNodes, ...recommendedNodes])
-    setEdges((currentEdges) => [...currentEdges, ...recommendedEdges])
-  }
-
-  const addRecommendedFlow = (recommendation: CanvasAIRecommendation) => {
-    addFlowFromSelections(getRecommendationPlan(recommendation))
-  }
-
-  const saveLearningNeed = (
-    recommendation: CanvasAIRecommendation,
-    prompt: string,
-  ) => {
-    const need: LearningNeed = {
-      id: `${recommendation.type}-${Date.now()}`,
-      prompt,
-      type: recommendation.type,
-      title: recommendation.title,
-      developerNeed: recommendation.developerNeed,
-      createdAt: new Date().toLocaleString(),
-    }
-
-    setLearningNeeds((currentNeeds) => {
-      const nextNeeds = [need, ...currentNeeds].slice(0, 6)
-
-      window.localStorage.setItem('auditflow.learningNeeds', JSON.stringify(nextNeeds))
-
-      return nextNeeds
-    })
-  }
-
   const handleAttachFiles = (nodeId: string, files: NodeFileMeta[]) => {
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
@@ -386,12 +164,9 @@ function App() {
           data: {
             ...node.data,
             files: nextFiles,
-            status: 'success',
-            summary: `${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} cargado${nextFiles.length === 1 ? '' : 's'}`,
-            resultSummary: [
-              `${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} disponible${nextFiles.length === 1 ? '' : 's'} para análisis.`,
-              'Pendiente perfilar contenido para generar recomendaciones específicas.',
-            ],
+            status: 'idle',
+            summary: `${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} adjunto${nextFiles.length === 1 ? '' : 's'} como metadato local`,
+            resultSummary: undefined,
           },
         }
       }),
@@ -451,43 +226,13 @@ function App() {
 
 
   return (
-    <AuditWorkspace
+    <WorkspaceSourcesProvider>
+      <AuditWorkspace
       activeFocus={workspaceMode}
       nodeCount={nodes.length}
       edgeCount={edges.length}
-      learningNeedCount={learningNeeds.length}
-      dataSourceCount={0}
       onFocusChange={setWorkspaceMode}
       onOpenTools={openLibrary}
-      commandLayer={(
-        <>
-          <CanvasAIAssistant
-            showStartActions={nodes.length === 0}
-            onOpenManualLibrary={openLibrary}
-            onCreateRecommendedNode={addRecommendedNode}
-            onCreateRecommendedFlow={addRecommendedFlow}
-            onSaveLearningNeed={saveLearningNeed}
-          />
-
-          {learningNeeds.length > 0 && (
-            <aside className="learning-memory-dock">
-              <span>Memoria de aprendizaje</span>
-              <strong>
-                {learningNeeds.length} necesidad{learningNeeds.length === 1 ? '' : 'es'} detectada{learningNeeds.length === 1 ? '' : 's'}
-              </strong>
-
-              <div>
-                {learningNeeds.slice(0, 3).map((need) => (
-                  <article key={need.id}>
-                    <small>{need.type}</small>
-                    <p>{need.prompt || need.title}</p>
-                  </article>
-                ))}
-              </div>
-            </aside>
-          )}
-        </>
-      )}
       dataLayer={<GuidedDataStage />}
       technicalLayer={(
         <div
@@ -557,19 +302,10 @@ function App() {
           )}
         </>
       )}
-    />
+      />
+    </WorkspaceSourcesProvider>
   )
 
 }
 
 export default App
-
-
-
-
-
-
-
-
-
-

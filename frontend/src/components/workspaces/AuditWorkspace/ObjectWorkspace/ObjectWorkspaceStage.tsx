@@ -1,12 +1,14 @@
-﻿import {
+import {
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
   type PointerEvent,
 } from 'react'
-import type {
-  CanvasAIRecommendation,
-} from '../../../../intelligence'
+import {
+  useWorkspaceSources,
+  type WorkspaceSource,
+} from '../WorkspaceSources'
 import {
   useObjectWorkspace,
 } from './useObjectWorkspace'
@@ -16,9 +18,6 @@ import type {
 import './ObjectWorkspaceStage.css'
 
 type ObjectWorkspaceStageProps = {
-  onCreateRecommendedFlow?: (
-    recommendation: CanvasAIRecommendation,
-  ) => void
   onOpenTools?: () => void
   onOpenTechnical?: () => void
 }
@@ -34,6 +33,98 @@ const kindLabels: Record<
   visualization: 'Gráfica',
   finding: 'Hallazgo',
   report: 'Reporte',
+}
+
+const statusLabels: Record<
+  WorkspaceObject['status'],
+  string
+> = {
+  available: 'Disponible',
+  queued: 'En cola',
+  processing: 'Procesando',
+  ready: 'Procesado',
+  failed: 'Error',
+  draft: 'Borrador',
+  warning: 'No disponible',
+}
+
+
+function summarizeSource(source: WorkspaceSource) {
+  if (!source.profile) {
+    return {
+      rows: 0,
+      columns: 0,
+      nulls: 0,
+      duplicates: 0,
+    }
+  }
+
+  return source.profile.sheets.reduce(
+    (summary, sheet) => ({
+      rows: summary.rows + sheet.row_count,
+      columns: summary.columns + sheet.column_count,
+      nulls:
+        summary.nulls
+        + sheet.columns.reduce(
+          (total, column) => total + column.null_count,
+          0,
+        ),
+      duplicates:
+        summary.duplicates + sheet.duplicate_row_count,
+    }),
+    {
+      rows: 0,
+      columns: 0,
+      nulls: 0,
+      duplicates: 0,
+    },
+  )
+}
+
+function sourceToWorkspaceObject(
+  source: WorkspaceSource,
+): WorkspaceObject {
+  const summary = summarizeSource(source)
+  const statusMap: Record<
+    WorkspaceSource['status'],
+    WorkspaceObject['status']
+  > = {
+    queued: 'queued',
+    uploading: 'processing',
+    ready: 'ready',
+    failed: 'failed',
+  }
+
+  const subtitle =
+    source.status === 'queued'
+      ? 'En cola para ingestión real'
+      : source.status === 'uploading'
+        ? 'Almacenando y perfilando en el backend'
+        : source.status === 'failed'
+          ? source.error ?? 'La ingestión falló'
+          : `${source.profile?.sheets.length ?? 0} hojas · ${summary.rows.toLocaleString('es-MX')} filas`
+
+  return {
+    id: `source-${source.localId}`,
+    kind: 'source',
+    title: source.profile?.original_name ?? source.name,
+    subtitle,
+    status: statusMap[source.status],
+    position: { x: 70, y: 45 },
+    isOnStage: false,
+    isHidden: false,
+    format: source.profile?.extension ?? source.extension,
+    sourceId: source.profile?.id,
+    sourceProfile: source.profile,
+    previewLines: source.profile
+      ? [
+          `${summary.columns.toLocaleString('es-MX')} columnas`,
+          `${summary.nulls.toLocaleString('es-MX')} nulos`,
+          `${summary.duplicates.toLocaleString('es-MX')} duplicados`,
+        ]
+      : undefined,
+    createdAt: source.createdAt,
+  }
 }
 
 function ObjectViewer({
@@ -54,30 +145,6 @@ function ObjectViewer({
     )
   }
 
-  if (
-    object.kind === 'visualization'
-  ) {
-    return (
-      <div className="ow-chart-preview">
-        <small>
-          Vista preliminar · pendiente de columnas reales
-        </small>
-
-        <div>
-          {[58, 82, 44, 72, 36].map(
-            (height, index) => (
-              <span
-                key={`${height}-${index}`}
-                style={{
-                  height: `${height}%`,
-                }}
-              />
-            ),
-          )}
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="ow-detail-copy">
@@ -97,6 +164,35 @@ function ObjectViewer({
             )}
           </ul>
         )}
+
+      {object.sourceProfile && (
+        <dl>
+          <div>
+            <dt>Estado</dt>
+            <dd>Perfilado real completado</dd>
+          </div>
+          <div>
+            <dt>ID fuente</dt>
+            <dd>{object.sourceProfile.id}</dd>
+          </div>
+          <div>
+            <dt>SHA-256</dt>
+            <dd>{object.sourceProfile.sha256}</dd>
+          </div>
+          <div>
+            <dt>Hojas</dt>
+            <dd>{object.sourceProfile.sheets.length}</dd>
+          </div>
+          <div>
+            <dt>Almacenado</dt>
+            <dd>
+              {new Date(
+                object.sourceProfile.stored_at,
+              ).toLocaleString('es-MX')}
+            </dd>
+          </div>
+        </dl>
+      )}
 
       {object.file && (
         <dl>
@@ -278,7 +374,7 @@ function StageObject({
         >
           {compared
             ? 'Quitar'
-            : 'Comparar'}
+            : 'Ver junto'}
         </button>
       </div>
     </article>
@@ -286,7 +382,6 @@ function StageObject({
 }
 
 export default function ObjectWorkspaceStage({
-  onCreateRecommendedFlow,
   onOpenTools,
   onOpenTechnical,
 }: ObjectWorkspaceStageProps) {
@@ -301,10 +396,17 @@ export default function ObjectWorkspaceStage({
   const fileInputRef =
     useRef<HTMLInputElement>(null)
 
-  const workspace =
-    useObjectWorkspace(
-      onCreateRecommendedFlow,
-    )
+  const {
+    sources,
+    ingestFiles,
+  } = useWorkspaceSources()
+
+  const sourceObjects = useMemo(
+    () => sources.map(sourceToWorkspaceObject),
+    [sources],
+  )
+
+  const workspace = useObjectWorkspace(sourceObjects)
 
   const handleSubmit = () => {
     const cleanPrompt = prompt.trim()
@@ -321,12 +423,8 @@ export default function ObjectWorkspaceStage({
   const handleFiles = (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    if (
-      event.target.files?.length
-    ) {
-      workspace.uploadFiles(
-        event.target.files,
-      )
+    if (event.target.files?.length) {
+      void ingestFiles(event.target.files)
     }
 
     event.target.value = ''
@@ -337,10 +435,28 @@ export default function ObjectWorkspaceStage({
       (object) => object.kind !== 'tool',
     )
 
-  const toolObjects =
-    workspace.objects.filter(
-      (object) => object.kind === 'tool',
-    )
+  const readySourceCount = sources.filter(
+    (source) => source.status === 'ready',
+  ).length
+
+  const processingSourceCount = sources.filter(
+    (source) =>
+      source.status === 'queued'
+      || source.status === 'uploading',
+  ).length
+
+  const failedSourceCount = sources.filter(
+    (source) => source.status === 'failed',
+  ).length
+
+  const coreStatus =
+    processingSourceCount > 0
+      ? `${processingSourceCount} fuente${processingSourceCount === 1 ? '' : 's'} procesando`
+      : readySourceCount > 0
+        ? `${readySourceCount} fuente${readySourceCount === 1 ? '' : 's'} real${readySourceCount === 1 ? '' : 'es'} disponible${readySourceCount === 1 ? '' : 's'}`
+        : failedSourceCount > 0
+          ? 'fuentes con error de ingestión'
+          : 'esperando fuentes'
 
   const mode =
     workspace.compareObjects.length === 2
@@ -360,15 +476,11 @@ export default function ObjectWorkspaceStage({
 
       <div
         className="ow-ai-core"
-        aria-label="Núcleo de inteligencia artificial"
+        aria-label="Núcleo de análisis"
       >
-        <span>IA</span>
+        <span>AF</span>
         <strong>AuditFlow</strong>
-        <small>
-          {workspace.visibleObjects.length > 0
-            ? 'asiste el campo'
-            : 'esperando instrucción'}
-        </small>
+        <small>{coreStatus}</small>
       </div>
 
       <div className="ow-top-actions">
@@ -417,7 +529,7 @@ export default function ObjectWorkspaceStage({
         className="ow-hidden-input"
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.sql,.txt"
+        accept=".xlsx,.csv"
         onChange={handleFiles}
       />
 
@@ -508,7 +620,7 @@ export default function ObjectWorkspaceStage({
                     )
                   }
                 >
-                  Agregar a comparación
+                  Agregar a vista conjunta
                 </button>
 
                 <button
@@ -536,7 +648,7 @@ export default function ObjectWorkspaceStage({
           <header>
             <div>
               <span>
-                Comparación activa
+                Vista conjunta
               </span>
               <strong>
                 Dos objetos en el mismo contexto
@@ -549,7 +661,7 @@ export default function ObjectWorkspaceStage({
                 workspace.clearCompare
               }
             >
-              Cerrar comparación
+              Cerrar vista conjunta
             </button>
           </header>
 
@@ -590,10 +702,10 @@ export default function ObjectWorkspaceStage({
         <header>
           <div>
             <span>
-              Objetos disponibles
+              Objetos reales disponibles
             </span>
             <strong>
-              Fuentes, resultados y herramientas
+              Fuentes procesadas y resultados verificables
             </strong>
           </div>
 
@@ -613,7 +725,7 @@ export default function ObjectWorkspaceStage({
           {regularObjects.length ===
             0 && (
             <p className="ow-shelf-empty">
-              Escribe una solicitud o sube un archivo.
+              Sube un archivo CSV o XLSX para registrarlo como fuente real.
             </p>
           )}
 
@@ -623,13 +735,19 @@ export default function ObjectWorkspaceStage({
                 key={object.id}
                 className="ow-shelf-item"
               >
-                <span>
-                  {
-                    kindLabels[
-                      object.kind
-                    ]
-                  }
-                </span>
+                <div className="ow-shelf-item-topline">
+                  <span>
+                    {
+                      kindLabels[
+                        object.kind
+                      ]
+                    }
+                  </span>
+
+                  <b data-status={object.status}>
+                    {statusLabels[object.status]}
+                  </b>
+                </div>
 
                 <strong>
                   {object.title}
@@ -667,24 +785,6 @@ export default function ObjectWorkspaceStage({
           )}
         </div>
 
-        <div className="ow-tool-row">
-          {toolObjects.map((tool) => (
-            <button
-              key={tool.id}
-              type="button"
-              onClick={() =>
-                workspace.executeTool(
-                  tool.id,
-                )
-              }
-            >
-              <span>{tool.title}</span>
-              <small>
-                {tool.subtitle}
-              </small>
-            </button>
-          ))}
-        </div>
       </aside>
 
       <section className="ow-composer">
@@ -729,6 +829,21 @@ export default function ObjectWorkspaceStage({
 
         {transcriptOpen && (
           <div className="ow-transcript">
+            <div className="ow-transcript-header">
+              <div>
+                <span>Historial de solicitudes</span>
+                <small>Registro informativo; no forma parte de los objetos.</small>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setTranscriptOpen(false)}
+                aria-label="Cerrar historial"
+              >
+                ×
+              </button>
+            </div>
+
             {workspace.transcript
               .slice(-8)
               .map((item) => (
@@ -746,7 +861,7 @@ export default function ObjectWorkspaceStage({
         )}
 
         <div className="ow-input-row">
-          <span>IA</span>
+          <span>AF</span>
 
           <input
             value={prompt}
@@ -762,18 +877,17 @@ export default function ObjectWorkspaceStage({
                 handleSubmit()
               }
             }}
-            placeholder="Pídele a la IA que revise, cruce, explique o genere..."
+            placeholder="Describe la tarea; quedará pendiente hasta contar con un ejecutor real."
           />
 
           <button
             type="button"
             onClick={handleSubmit}
           >
-            Enviar
+            Registrar
           </button>
         </div>
       </section>
     </section>
   )
 }
-

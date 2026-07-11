@@ -1,4 +1,4 @@
-﻿.audit-workspace {
+.audit-workspace {
   position: relative;
   width: 100vw;
   height: 100dvh;
@@ -502,75 +502,6 @@
   display: none;
 }
 
-.audit-command-layer .empty-workflow-start {
-  top: calc(50% + 126px);
-  width: min(760px, calc(100% - 72px));
-  gap: 12px;
-}
-
-.audit-command-layer .quick-start-strip {
-  max-width: 760px;
-  padding: 10px;
-  border: 1px solid rgba(125, 211, 252, 0.12);
-  border-radius: 999px;
-  background: rgba(3, 9, 22, 0.38);
-  backdrop-filter: blur(14px);
-}
-
-.audit-command-layer .quick-start-strip button {
-  background: rgba(7, 19, 42, 0.82);
-}
-
-.audit-command-layer .ai-copilot-launcher {
-  left: 50%;
-  top: 48%;
-  right: auto;
-  bottom: auto;
-  z-index: 44;
-  min-width: min(420px, calc(100% - 64px));
-  min-height: 86px;
-  border-radius: 999px;
-  padding: 16px 20px;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(125, 211, 252, 0.22), transparent 34%),
-    radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.22), transparent 34%),
-    rgba(5, 13, 31, 0.9);
-  border-color: rgba(125, 211, 252, 0.34);
-  box-shadow:
-    0 0 48px rgba(56, 189, 248, 0.22),
-    0 24px 90px rgba(0, 0, 0, 0.48);
-  transform: translate(-50%, -50%);
-}
-
-.audit-command-layer .ai-copilot-launcher:hover,
-.audit-command-layer .ai-copilot-launcher.active {
-  transform: translate(-50%, -50%) translateY(-2px);
-}
-
-.audit-command-layer .ai-copilot-orb {
-  border-radius: 999px;
-  box-shadow:
-    0 0 36px rgba(56, 189, 248, 0.34),
-    0 18px 45px rgba(124, 58, 237, 0.35);
-}
-
-.audit-command-layer .ai-copilot-copy strong {
-  font-size: 16px;
-}
-
-.audit-command-layer .ai-copilot-copy small {
-  color: rgba(222, 236, 255, 0.68);
-}
-
-.audit-command-layer .ai-copilot-panel {
-  top: 12px;
-  right: 12px;
-  width: min(530px, calc(100% - 24px));
-  height: calc(100% - 24px);
-  border-radius: 26px;
-  z-index: 90;
-}
-
 .audit-data-layer {
   inset: 12px;
 }
@@ -651,10 +582,6 @@
 
   .audit-workspace-surface {
     min-height: 680px;
-  }
-
-  .audit-command-layer .ai-copilot-launcher {
-    min-width: min(360px, calc(100% - 40px));
   }
 }
 
@@ -741,30 +668,6 @@ body,
 
 .audit-workspace-core {
   top: 50%;
-}
-
-.audit-command-layer .ai-copilot-launcher {
-  top: 50%;
-  min-width: 380px;
-  max-width: 430px;
-  min-height: 78px;
-  padding: 14px 18px;
-  opacity: 0.96;
-}
-
-.audit-command-layer .ai-copilot-launcher::before {
-  content: '';
-  position: absolute;
-  inset: -28px;
-  z-index: -1;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.16), transparent 66%);
-  filter: blur(8px);
-}
-
-.audit-command-layer .ai-copilot-orb {
-  width: 52px;
-  height: 52px;
 }
 
 .audit-domain-node {
@@ -866,65 +769,6 @@ body,
   color: rgba(191, 219, 254, 0.68);
 }
 
-/* El launcher sigue funcionando, pero ya no se ve como tarjeta. El núcleo es la experiencia. */
-.audit-command-layer .ai-copilot-launcher {
-  top: 50%;
-  width: 238px;
-  height: 238px;
-  min-width: 0;
-  max-width: none;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent !important;
-  box-shadow: none !important;
-  backdrop-filter: none;
-  opacity: 1;
-  cursor: pointer;
-}
-
-.audit-command-layer .ai-copilot-launcher:hover,
-.audit-command-layer .ai-copilot-launcher.active {
-  transform: translate(-50%, -50%) scale(1.03);
-}
-
-.audit-command-layer .ai-copilot-launcher::before {
-  content: '';
-  position: absolute;
-  inset: 18px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(250, 204, 21, 0.1), transparent 65%);
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-.audit-command-layer .ai-copilot-launcher:hover::before {
-  opacity: 1;
-}
-
-.audit-command-layer .ai-copilot-orb,
-.audit-command-layer .ai-copilot-copy {
-  display: none;
-}
-
-.audit-command-layer .empty-workflow-start {
-  top: calc(50% + 168px);
-  width: min(860px, calc(100% - 150px));
-}
-
-.audit-command-layer .quick-start-strip {
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12), transparent 42%),
-    rgba(3, 9, 22, 0.36);
-  border-color: rgba(56, 189, 248, 0.14);
-}
-
-.audit-command-layer .quick-start-strip button {
-  border-color: rgba(56, 189, 248, 0.22);
-  background: rgba(3, 12, 28, 0.62);
-}
-
 .audit-workspace-core-map::after {
   bottom: 16%;
   content: 'IA activa · workspace vivo';
@@ -968,24 +812,6 @@ body,
   to {
     transform: rotate(360deg) scale(1);
   }
-}
-
-/* end v0.8.6.3 */
-
-/* v0.8.6.3-fix - remove old ai panel */
-
-/* El panel viejo del copiloto queda desactivado.
-   La experiencia principal debe ser el núcleo IA vivo, no una ventana flotante. */
-.audit-command-layer .ai-copilot-panel {
-  display: none !important;
-}
-
-.audit-command-layer .ai-copilot-launcher.active {
-  pointer-events: auto;
-}
-
-.audit-command-layer .ai-copilot-launcher.active::before {
-  opacity: 1;
 }
 
 .audit-workspace-core {
@@ -1096,13 +922,6 @@ body,
 .audit-workspace[data-scene='results'] .audit-workspace-core,
 .audit-workspace[data-scene='sources'] .audit-workspace-core,
 .audit-workspace[data-scene='technical'] .audit-workspace-core {
-  left: 30%;
-  top: 50%;
-}
-
-.audit-workspace[data-scene='results'] .audit-command-layer .ai-copilot-launcher,
-.audit-workspace[data-scene='sources'] .audit-command-layer .ai-copilot-launcher,
-.audit-workspace[data-scene='technical'] .audit-command-layer .ai-copilot-launcher {
   left: 30%;
   top: 50%;
 }
@@ -1226,38 +1045,6 @@ body,
   color: #fde68a;
   background: rgba(250, 204, 21, 0.08);
   font-weight: 800;
-}
-
-/* Al existir resultados, las acciones rápidas bajan para no competir con los objetos. */
-.audit-workspace[data-scene='results'] .audit-command-layer .empty-workflow-start,
-.audit-workspace[data-scene='sources'] .audit-command-layer .empty-workflow-start,
-.audit-workspace[data-scene='technical'] .audit-command-layer .empty-workflow-start {
-  top: auto;
-  bottom: 34px;
-  width: min(760px, calc(100% - 170px));
-}
-
-/* El panel viejo queda apagado: no más ventana grande del copiloto. */
-.audit-command-layer .ai-copilot-panel {
-  display: none !important;
-}
-
-.audit-command-layer .ai-copilot-orb,
-.audit-command-layer .ai-copilot-copy {
-  display: none;
-}
-
-.audit-command-layer .ai-copilot-launcher {
-  width: 238px;
-  height: 238px;
-  min-width: 0;
-  max-width: none;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent !important;
-  box-shadow: none !important;
-  backdrop-filter: none;
 }
 
 @media (max-width: 1280px) {
@@ -1389,19 +1176,9 @@ body,
   left: 50%;
 }
 
-.audit-workspace[data-scene='idle'] .audit-command-layer .ai-copilot-launcher {
-  left: 50%;
-}
-
 .audit-workspace[data-scene='results'] .audit-workspace-core,
 .audit-workspace[data-scene='sources'] .audit-workspace-core,
 .audit-workspace[data-scene='technical'] .audit-workspace-core {
-  left: 27%;
-}
-
-.audit-workspace[data-scene='results'] .audit-command-layer .ai-copilot-launcher,
-.audit-workspace[data-scene='sources'] .audit-command-layer .ai-copilot-launcher,
-.audit-workspace[data-scene='technical'] .audit-command-layer .ai-copilot-launcher {
   left: 27%;
 }
 
@@ -1524,22 +1301,6 @@ body,
   filter: brightness(1.08);
 }
 
-/* Los botones rápidos suben un poco para dejar respirar la consola. */
-.audit-command-layer .empty-workflow-start {
-  bottom: 104px !important;
-  top: auto !important;
-}
-
-.audit-command-layer .quick-start-strip {
-  opacity: 0.88;
-}
-
-.audit-workspace[data-scene='results'] .audit-command-layer .empty-workflow-start,
-.audit-workspace[data-scene='sources'] .audit-command-layer .empty-workflow-start,
-.audit-workspace[data-scene='technical'] .audit-command-layer .empty-workflow-start {
-  bottom: 104px;
-}
-
 /* Los objetos viven por encima del campo, pero no tapan la consola. */
 .audit-spatial-field {
   z-index: 54;
@@ -1600,14 +1361,6 @@ body,
   .audit-ai-input-console button {
     grid-column: 1 / -1;
   }
-}
-
-/* end v0.8.6.5 */
-
-/* v0.8.6.6.1 - object workspace integration */
-
-.audit-legacy-command-layer {
-  display: none !important;
 }
 
 .audit-command-layer {

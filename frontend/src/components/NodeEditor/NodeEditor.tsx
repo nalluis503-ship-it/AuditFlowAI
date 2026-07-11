@@ -1,4 +1,4 @@
-﻿import { useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import type {
   AuditFlowNode,
   NodeExecutionStatus,
@@ -8,7 +8,6 @@ import {
   getNodeActionExperience,
   type NodeEditorField,
 } from '../../data/nodeActionRegistry'
-import NodeAssistant from '../NodeAssistant'
 import './NodeEditor.css'
 
 type NodeEditorProps = {
@@ -18,7 +17,7 @@ type NodeEditorProps = {
   onSuggestNextNode: (nodeId: string) => void
 }
 
-type EditorTab = 'config' | 'execution' | 'results' | 'trace' | 'ai'
+type EditorTab = 'config' | 'execution' | 'results' | 'trace'
 
 const statusLabel: Record<NodeExecutionStatus, string> = {
   idle: 'Sin ejecutar',
@@ -52,7 +51,6 @@ const tabLabels: Record<EditorTab, string> = {
   execution: 'Ejecución',
   results: 'Resultados',
   trace: 'Trazabilidad',
-  ai: 'IA',
 }
 
 function formatFileSize(size: number) {
@@ -162,7 +160,7 @@ function NodeEditor({
     outputType: node.data.outputType,
   })
 
-  const hasResults = files.length > 0 || resultSummary.length > 0 || status === 'success'
+  const hasResults = resultSummary.length > 0 || status === 'success'
 
   return (
     <aside
@@ -244,8 +242,8 @@ function NodeEditor({
                 <div className="node-editor-empty-config">
                   <strong>Configuración flexible</strong>
                   <small>
-                    Este nodo no requiere campos obligatorios todavía. La IA puede sugerir cómo
-                    parametrizarlo según el flujo.
+                    Este nodo no requiere campos obligatorios. Permanecerá sin ejecutar hasta
+                    conectarse con una capacidad backend real.
                   </small>
                 </div>
               )}
@@ -368,7 +366,7 @@ function NodeEditor({
                     <span>{String(index + 1).padStart(2, '0')}</span>
                     <div>
                       <strong>{file.name}</strong>
-                      <small>Origen disponible para resultados posteriores</small>
+                      <small>Metadato local adjunto; no procesado por el backend</small>
                     </div>
                   </article>
                 ))}
@@ -384,31 +382,16 @@ function NodeEditor({
           </div>
         )}
 
-        {activeTab === 'ai' && (
-          <NodeAssistant
-            experience={experience}
-            nodeTitle={node.data.title}
-            hasResults={hasResults}
-            onSuggestNextNode={() => onSuggestNextNode(node.id)}
-          />
-        )}
       </section>
 
       <footer className="node-editor-footer">
-        <button
-          type="button"
-          className="node-editor-secondary"
-          onClick={() => setActiveTab('ai')}
-        >
-          🧠 Activar IA del nodo
-        </button>
 
         <button
           type="button"
           className="node-editor-primary"
           onClick={() => onSuggestNextNode(node.id)}
         >
-          Siguiente paso
+          Conectar siguiente paso
         </button>
       </footer>
     </aside>

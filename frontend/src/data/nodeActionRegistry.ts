@@ -1,4 +1,4 @@
-﻿import type { NodeDataType } from './toolCatalog'
+import type { NodeDataType } from './toolCatalog'
 
 export type NodeEditorField =
   | {
@@ -39,9 +39,6 @@ export type NodeActionExperience = {
   expectedResult: string
   resultEmptyState: string
   fields: NodeEditorField[]
-  aiOpeningMessage: string
-  aiSuggestions: string[]
-  nextStepLabel: string
   outputType?: NodeDataType
 }
 
@@ -74,15 +71,6 @@ const experiences: NodeActionExperience[] = [
         multiple: true,
       },
     ],
-    aiOpeningMessage:
-      'Cuando cargues archivos, puedo detectar si contienen pagos, contratos, proveedores, fechas, importes o información útil para auditoría.',
-    aiSuggestions: [
-      'Perfilar columnas y hojas detectadas',
-      'Identificar archivos de pagos, contratos o soporte',
-      'Sugerir cruces entre archivos',
-      'Preparar una validación de pagos contra contratos',
-    ],
-    nextStepLabel: 'Sugerir perfilado o análisis',
     outputType: 'file',
   },
   {
@@ -125,15 +113,6 @@ const experiences: NodeActionExperience[] = [
         placeholder: 'usuario_lectura',
       },
     ],
-    aiOpeningMessage:
-      'Cuando la conexión esté lista, puedo ayudarte a detectar tablas relevantes, relaciones posibles y pruebas de auditoría aplicables.',
-    aiSuggestions: [
-      'Listar tablas relevantes',
-      'Detectar tablas de pagos, contratos o proveedores',
-      'Perfilar columnas sensibles',
-      'Sugerir consultas SQL de auditoría',
-    ],
-    nextStepLabel: 'Sugerir exploración de tablas',
     outputType: 'sqlDataset',
   },
   {
@@ -161,15 +140,6 @@ const experiences: NodeActionExperience[] = [
         ],
       },
     ],
-    aiOpeningMessage:
-      'Con el perfilado puedo entender qué contiene la fuente y sugerir análisis reales sin inventar contexto.',
-    aiSuggestions: [
-      'Detectar si la fuente contiene pagos',
-      'Sugerir campos de relación',
-      'Recomendar validaciones de auditoría',
-      'Preparar cruce contra otra fuente',
-    ],
-    nextStepLabel: 'Sugerir análisis por contenido',
     outputType: 'dataset',
   },
   {
@@ -188,7 +158,7 @@ const experiences: NodeActionExperience[] = [
         label: 'Tipo de cruce',
         type: 'select',
         helper: 'Define cómo se relacionarán las fuentes.',
-        options: ['Coincidencias exactas', 'Diferencias', 'No encontrados', 'Cruce flexible con IA'],
+        options: ['Coincidencias exactas', 'Diferencias', 'No encontrados', 'Cruce flexible (pendiente de ejecutor)'],
       },
       {
         id: 'join-fields',
@@ -198,15 +168,6 @@ const experiences: NodeActionExperience[] = [
         placeholder: 'contrato, proveedor, factura',
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a elegir campos de relación y explicar diferencias encontradas entre fuentes.',
-    aiSuggestions: [
-      'Sugerir campos de cruce',
-      'Detectar registros sin coincidencia',
-      'Agrupar diferencias por proveedor',
-      'Preparar hallazgos con evidencia',
-    ],
-    nextStepLabel: 'Sugerir validación o hallazgos',
     outputType: 'auditResult',
   },
   {
@@ -234,15 +195,6 @@ const experiences: NodeActionExperience[] = [
         ],
       },
     ],
-    aiOpeningMessage:
-      'Puedo interpretar resultados, priorizar riesgos y convertir anomalías en observaciones auditables.',
-    aiSuggestions: [
-      'Explicar anomalías detectadas',
-      'Clasificar hallazgos por riesgo',
-      'Sugerir evidencia necesaria',
-      'Crear nodo de hallazgos preliminares',
-    ],
-    nextStepLabel: 'Sugerir hallazgos preliminares',
     outputType: 'auditResult',
   },
   {
@@ -264,15 +216,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Condición-Criterio-Causa-Efecto', 'Observación técnica', 'Cédula de hallazgos', 'Resumen ejecutivo'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a redactar hallazgos claros, sustentados y con lenguaje institucional.',
-    aiSuggestions: [
-      'Redactar hallazgos preliminares',
-      'Separar hallazgos por nivel de riesgo',
-      'Generar recomendaciones',
-      'Preparar anexo de trazabilidad',
-    ],
-    nextStepLabel: 'Sugerir reporte o anexo',
     outputType: 'document',
   },
   {
@@ -301,15 +244,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Resumen ejecutivo', 'Hallazgos', 'Evidencia', 'Trazabilidad', 'Recomendaciones'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a estructurar el reporte, resumir resultados y generar anexos de evidencia.',
-    aiSuggestions: [
-      'Generar resumen ejecutivo',
-      'Ordenar hallazgos por riesgo',
-      'Crear anexo de trazabilidad',
-      'Preparar versión para revisión',
-    ],
-    nextStepLabel: 'Preparar reporte',
     outputType: 'report',
   },
   {
@@ -338,15 +272,6 @@ const experiences: NodeActionExperience[] = [
         placeholder: 'SELECT proveedor, monto, fecha FROM pagos WHERE ejercicio = 2025',
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a convertir el objetivo auditor en una consulta segura de solo lectura y sugerir campos relevantes.',
-    aiSuggestions: [
-      'Sugerir consulta SELECT segura',
-      'Detectar tablas relevantes',
-      'Identificar campos de pago, contrato o proveedor',
-      'Preparar perfilado del resultado',
-    ],
-    nextStepLabel: 'Perfilar resultado SQL',
     outputType: 'dataset',
   },
   {
@@ -382,15 +307,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Resumen ejecutivo', 'Hallazgos', 'Evidencia', 'Recomendaciones', 'Trazabilidad', 'Firmas'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a estructurar el Word editable, insertar hallazgos y mantener lenguaje institucional.',
-    aiSuggestions: [
-      'Proponer estructura del informe',
-      'Insertar hallazgos en formato institucional',
-      'Preparar anexo de evidencia',
-      'Generar versión editable para revisión',
-    ],
-    nextStepLabel: 'Insertar hallazgos o evidencia',
     outputType: 'word',
   },
   {
@@ -420,15 +336,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Firmas', 'Fechas', 'Anexos', 'Importes', 'Contratos', 'Soporte de pago', 'Inconsistencias'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a ubicar evidencia, marcar secciones relevantes y vincular documentos con hallazgos.',
-    aiSuggestions: [
-      'Marcar evidencia soporte',
-      'Detectar documentos incompletos',
-      'Relacionar evidencia con hallazgo',
-      'Preparar anexo documental',
-    ],
-    nextStepLabel: 'Crear hallazgo o anexo',
     outputType: 'document',
   },
   {
@@ -457,15 +364,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Impacto económico', 'Impacto legal', 'Impacto operativo', 'Reincidencia', 'Probabilidad', 'Urgencia'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a clasificar riesgos y explicar por qué un hallazgo debe ser alto, medio o bajo.',
-    aiSuggestions: [
-      'Clasificar hallazgos por riesgo',
-      'Justificar nivel de impacto',
-      'Priorizar resultados críticos',
-      'Preparar cédula de riesgos',
-    ],
-    nextStepLabel: 'Generar cédula de auditoría',
     outputType: 'auditResult',
   },
   {
@@ -494,15 +392,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Objetivo', 'Procedimiento aplicado', 'Resultado', 'Evidencia', 'Conclusión', 'Recomendación'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a estructurar la cédula con lenguaje auditor, evidencia y trazabilidad.',
-    aiSuggestions: [
-      'Redactar objetivo de la cédula',
-      'Integrar resultado y evidencia',
-      'Generar anexo de trazabilidad',
-      'Preparar versión Word editable',
-    ],
-    nextStepLabel: 'Crear Word editable',
     outputType: 'document',
   },
   {
@@ -531,15 +420,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Anexo institucional', 'Tabla simple', 'Matriz de observaciones', 'Base depurada'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a organizar los resultados en hojas claras y trazables para revisión.',
-    aiSuggestions: [
-      'Crear anexo Excel',
-      'Separar resultados por tipo',
-      'Incluir trazabilidad por fila',
-      'Preparar reporte Word con anexos',
-    ],
-    nextStepLabel: 'Crear Word editable o reporte',
     outputType: 'report',
   },
   {
@@ -561,15 +441,6 @@ const experiences: NodeActionExperience[] = [
         options: ['Eliminar espacios', 'Normalizar columnas', 'Convertir fechas', 'Convertir importes', 'Depurar nulos', 'Quitar duplicados simples'],
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a preparar datos antes de cruzarlos o validarlos para evitar errores por formato.',
-    aiSuggestions: [
-      'Normalizar columnas clave',
-      'Detectar fechas e importes',
-      'Preparar datos para cruce',
-      'Revisar duplicados simples',
-    ],
-    nextStepLabel: 'Perfilar datos',
     outputType: 'dataset',
   },
   {
@@ -598,45 +469,7 @@ const experiences: NodeActionExperience[] = [
         placeholder: 'Ejemplo: 10% o 100 registros',
       },
     ],
-    aiOpeningMessage:
-      'Puedo ayudarte a justificar el criterio de muestreo y documentar por qué se seleccionaron esos registros.',
-    aiSuggestions: [
-      'Crear muestra por riesgo',
-      'Justificar criterio de selección',
-      'Priorizar montos altos',
-      'Generar cédula de muestra',
-    ],
-    nextStepLabel: 'Generar cédula de auditoría',
     outputType: 'dataset',
-  },  {
-    id: 'ai',
-    title: 'IA auditora',
-    actionDescription:
-      'Permite consultar a la IA para orientar el análisis, explicar resultados, sugerir flujos o asistir al auditor dentro del proceso.',
-    configurationTitle: 'Consulta o instrucción',
-    expectedResult:
-      'Recomendación, explicación, flujo sugerido o propuesta de siguiente acción visible dentro del workflow.',
-    resultEmptyState:
-      'Escribe una pregunta o instrucción para que la IA proponga el siguiente paso.',
-    fields: [
-      {
-        id: 'prompt',
-        label: 'Pregunta para IA',
-        type: 'text',
-        helper: 'Describe qué quieres analizar, revisar o construir.',
-        placeholder: 'Quiero revisar pagos contra contratos...',
-      },
-    ],
-    aiOpeningMessage:
-      'Puedo ayudarte a construir el flujo, entender resultados o recomendar herramientas sin sustituir tu control.',
-    aiSuggestions: [
-      'Recomendar nodo inicial',
-      'Crear flujo sugerido',
-      'Explicar resultados',
-      'Enviar necesidad al backlog inteligente',
-    ],
-    nextStepLabel: 'Generar recomendación',
-    outputType: 'unknown',
   },
 ]
 
@@ -717,9 +550,6 @@ export function getNodeActionExperience(input: ResolveExperienceInput) {
     return experiences.find((experience) => experience.id === 'report')!
   }
 
-  if (textIncludesAny(searchable, ['ia', 'ai', 'auditor'])) {
-    return experiences.find((experience) => experience.id === 'ai')!
-  }
 
   return {
     id: 'generic',
@@ -732,16 +562,6 @@ export function getNodeActionExperience(input: ResolveExperienceInput) {
     resultEmptyState:
       'Sin resultados todavía. Configura o ejecuta el nodo para producir una salida.',
     fields: [],
-    aiOpeningMessage:
-      'Puedo ayudarte a entender qué necesita este nodo y sugerir el siguiente paso compatible.',
-    aiSuggestions: [
-      'Revisar configuración',
-      'Sugerir siguiente nodo',
-      'Explicar salida esperada',
-      'Enviar necesidad al backlog inteligente',
-    ],
-    nextStepLabel: 'Sugerir siguiente nodo',
     outputType: input.outputType,
   } satisfies NodeActionExperience
 }
-
