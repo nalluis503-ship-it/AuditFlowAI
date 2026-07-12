@@ -30,7 +30,7 @@ const focusLabels: Record<
 > = {
   command: 'Análisis',
   data: 'Fuentes',
-  technical: 'Flujo técnico',
+  technical: 'Vista técnica',
 }
 
 function AuditWorkspace({
@@ -91,23 +91,24 @@ function AuditWorkspace({
 
           <div className="audit-workspace-command-copy">
             <strong>
-              Centro de análisis disponible
+              Mesa de análisis activa
             </strong>
 
             <small>
-              Las fuentes procesadas son reales; las solicitudes sin ejecutor quedan pendientes.
+              Fuentes reales disponibles; la vista técnica permanece en modo de diseño.
             </small>
           </div>
         </div>
 
         <div className="audit-workspace-actions">
-          <button
-            type="button"
-            onClick={onOpenTools}
-          >
-            Herramientas
-          </button>
-
+          {activeFocus === 'technical' && (
+            <button
+              type="button"
+              onClick={onOpenTools}
+            >
+              Biblioteca técnica
+            </button>
+          )}
         </div>
       </header>
 
@@ -208,9 +209,6 @@ function AuditWorkspace({
             ].join(' ')}
           >
             <ObjectWorkspaceStage
-              onOpenTools={
-                onOpenTools
-              }
               onOpenTechnical={() =>
                 changeFocus(
                   'technical',
@@ -262,6 +260,7 @@ function AuditWorkspace({
           <button
             type="button"
             className="audit-context-close"
+            aria-label="Cerrar contexto"
             onClick={() =>
               setIsContextOpen(false)
             }
@@ -283,7 +282,7 @@ function AuditWorkspace({
             </strong>
 
             <p>
-              El auditor controla qué objetos entran al campo, cuáles se comparan y cuáles regresan al inventario.
+              El auditor controla qué fuentes entran al campo, cuáles se ven juntas y cuáles regresan a la bandeja.
             </p>
           </section>
 

@@ -30,7 +30,6 @@ import {
 import {
   createWorkflowNodeTypes,
   type AuditFlowNode,
-  type NodeFileMeta,
 } from './components/WorkflowNode'
 
 const initialNodes: AuditFlowNode[] = []
@@ -151,27 +150,6 @@ function App() {
     setNodes((currentNodes) => [...currentNodes, newNode])
   }
 
-  const handleAttachFiles = (nodeId: string, files: NodeFileMeta[]) => {
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.id !== nodeId) return node
-
-        const previousFiles = node.data.files ?? []
-        const nextFiles = [...previousFiles, ...files]
-
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            files: nextFiles,
-            status: 'idle',
-            summary: `${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} adjunto${nextFiles.length === 1 ? '' : 's'} como metadato local`,
-            resultSummary: undefined,
-          },
-        }
-      }),
-    )
-  }
 
   const suggestNextNodeFromEditor = (nodeId: string) => {
     const node = nodes.find((currentNode) => currentNode.id === nodeId)
@@ -289,7 +267,6 @@ function App() {
             <NodeEditor
               node={openedNode}
               onClose={closeNodeEditor}
-              onAttachFiles={handleAttachFiles}
               onSuggestNextNode={suggestNextNodeFromEditor}
             />
           )}

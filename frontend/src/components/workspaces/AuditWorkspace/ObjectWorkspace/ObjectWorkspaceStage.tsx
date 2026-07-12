@@ -18,7 +18,6 @@ import type {
 import './ObjectWorkspaceStage.css'
 
 type ObjectWorkspaceStageProps = {
-  onOpenTools?: () => void
   onOpenTechnical?: () => void
 }
 
@@ -102,7 +101,7 @@ function sourceToWorkspaceObject(
         ? 'Almacenando y perfilando en el backend'
         : source.status === 'failed'
           ? source.error ?? 'La ingestión falló'
-          : `${source.profile?.sheets.length ?? 0} hojas · ${summary.rows.toLocaleString('es-MX')} filas`
+          : `${source.profile?.sheets.length ?? 0} ${source.profile?.sheets.length === 1 ? 'hoja' : 'hojas'} · ${summary.rows.toLocaleString('es-MX')} filas de datos`
 
   return {
     id: `source-${source.localId}`,
@@ -118,9 +117,9 @@ function sourceToWorkspaceObject(
     sourceProfile: source.profile,
     previewLines: source.profile
       ? [
-          `${summary.columns.toLocaleString('es-MX')} columnas`,
-          `${summary.nulls.toLocaleString('es-MX')} nulos`,
-          `${summary.duplicates.toLocaleString('es-MX')} duplicados`,
+          `${summary.columns.toLocaleString('es-MX')} columnas detectadas`,
+          `${summary.nulls.toLocaleString('es-MX')} celdas vacías`,
+          `${summary.duplicates.toLocaleString('es-MX')} filas duplicadas exactas`,
         ]
       : undefined,
     createdAt: source.createdAt,
@@ -382,11 +381,13 @@ function StageObject({
 }
 
 export default function ObjectWorkspaceStage({
-  onOpenTools,
   onOpenTechnical,
 }: ObjectWorkspaceStageProps) {
   const [prompt, setPrompt] =
     useState('')
+
+  const [rejectedFiles, setRejectedFiles] =
+    useState<{ name: string; reason: string }[]>([])
 
   const [
     transcriptOpen,
@@ -420,14 +421,16 @@ export default function ObjectWorkspaceStage({
     setPrompt('')
   }
 
-  const handleFiles = (
+  const handleFiles = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    if (event.target.files?.length) {
-      void ingestFiles(event.target.files)
-    }
-
+    const files = Array.from(event.target.files ?? [])
     event.target.value = ''
+
+    if (files.length === 0) return
+
+    const result = await ingestFiles(files)
+    setRejectedFiles(result.rejected)
   }
 
   const regularObjects =
@@ -506,23 +509,39 @@ export default function ObjectWorkspaceStage({
             fileInputRef.current?.click()
           }
         >
-          Subir archivos
-        </button>
-
-        <button
-          type="button"
-          onClick={onOpenTools}
-        >
-          Herramientas avanzadas
+          Subir fuentes
         </button>
 
         <button
           type="button"
           onClick={onOpenTechnical}
         >
-          Flujo técnico
+          Vista técnica
         </button>
       </div>
+
+      {rejectedFiles.length > 0 && (
+        <div className="ow-upload-rejections" role="status">
+          <div>
+            <strong>Algunos archivos no se agregaron</strong>
+            <ul>
+              {rejectedFiles.map((file) => (
+                <li key={`${file.name}-${file.reason}`}>
+                  {file.name}: {file.reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setRejectedFiles([])}
+            aria-label="Cerrar aviso de archivos rechazados"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <input
         ref={fileInputRef}
@@ -584,7 +603,7 @@ export default function ObjectWorkspaceStage({
               Trae solo los objetos que quieras trabajar
             </strong>
             <p>
-              Los resultados permanecen en la bandeja hasta que el auditor decide abrirlos.
+              Las fuentes permanecen en la bandeja hasta que el auditor decide llevarlas al campo.
             </p>
           </div>
         )}
@@ -711,6 +730,7 @@ export default function ObjectWorkspaceStage({
 
           <button
             type="button"
+            aria-label="Cerrar objetos disponibles"
             onClick={() =>
               workspace.setShelfOpen(
                 false,

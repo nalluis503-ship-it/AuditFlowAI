@@ -1,156 +1,60 @@
-import { useState, type ChangeEvent } from 'react'
-import type {
-  AuditFlowNode,
-  NodeExecutionStatus,
-  NodeFileMeta,
-} from '../WorkflowNode'
+import { useState } from 'react'
+import type { AuditFlowNode } from '../WorkflowNode'
 import {
   getNodeActionExperience,
   type NodeEditorField,
 } from '../../data/nodeActionRegistry'
+import { getToolAvailability } from '../../data/toolAvailability'
 import './NodeEditor.css'
 
 type NodeEditorProps = {
   node: AuditFlowNode
   onClose: () => void
-  onAttachFiles: (nodeId: string, files: NodeFileMeta[]) => void
   onSuggestNextNode: (nodeId: string) => void
 }
 
-type EditorTab = 'config' | 'execution' | 'results' | 'trace'
-
-const statusLabel: Record<NodeExecutionStatus, string> = {
-  idle: 'Sin ejecutar',
-  pending: 'Pendiente',
-  running: 'Ejecutando',
-  success: 'Correcto',
-  warning: 'Requiere revisión',
-  error: 'Error',
-}
-
-const statusIcon: Record<NodeExecutionStatus, string> = {
-  idle: '○',
-  pending: '…',
-  running: '↻',
-  success: '✓',
-  warning: '!',
-  error: '×',
-}
-
-const statusDescription: Record<NodeExecutionStatus, string> = {
-  idle: 'El nodo está listo para configurarse o ejecutarse.',
-  pending: 'El nodo está esperando ejecución.',
-  running: 'El nodo está procesando la acción configurada.',
-  success: 'El nodo terminó correctamente y generó salida.',
-  warning: 'El nodo requiere atención antes de continuar.',
-  error: 'El nodo falló durante la ejecución.',
-}
+type EditorTab = 'config' | 'trace'
 
 const tabLabels: Record<EditorTab, string> = {
-  config: 'Configuración',
-  execution: 'Ejecución',
-  results: 'Resultados',
-  trace: 'Trazabilidad',
+  config: 'Diseño',
+  trace: 'Trazabilidad esperada',
 }
 
-function formatFileSize(size: number) {
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
-}
-
-function renderField(
-  field: NodeEditorField,
-  node: AuditFlowNode,
-  onAttachFiles: (nodeId: string, files: NodeFileMeta[]) => void,
-) {
+function describeField(field: NodeEditorField) {
   if (field.type === 'file') {
-    const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
-      const selectedFiles = Array.from(event.target.files ?? [])
-
-      const fileMetadata: NodeFileMeta[] = selectedFiles.map((file) => ({
-        id: `${file.name}-${file.lastModified}-${file.size}`,
-        name: file.name,
-        size: file.size,
-        type: file.type || 'Archivo',
-        lastModified: file.lastModified,
-      }))
-
-      onAttachFiles(node.id, fileMetadata)
-      event.target.value = ''
-    }
-
-    return (
-      <label key={field.id} className="node-file-dropzone">
-        <input
-          type="file"
-          multiple={field.multiple}
-          accept={field.accept}
-          onChange={handleFiles}
-        />
-
-        <span className="node-file-upload-icon">⇧</span>
-        <strong>{field.label}</strong>
-        <small>{field.helper}</small>
-      </label>
-    )
+    return 'Usar una fuente registrada desde la Mesa de análisis.'
   }
 
-  if (field.type === 'select') {
-    return (
-      <label key={field.id} className="node-editor-control">
-        <span>{field.label}</span>
-        <select defaultValue="">
-          <option value="" disabled>
-            Selecciona una opción
-          </option>
-          {field.options.map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        </select>
-        <small>{field.helper}</small>
-      </label>
-    )
+  if (field.type === 'select' || field.type === 'checkbox-group') {
+    return field.options.join(' · ')
   }
 
-  if (field.type === 'text') {
-    return (
-      <label key={field.id} className="node-editor-control">
-        <span>{field.label}</span>
-        <input placeholder={field.placeholder} />
-        <small>{field.helper}</small>
-      </label>
-    )
-  }
+  return field.placeholder
+}
 
+function renderField(field: NodeEditorField) {
   return (
-    <div key={field.id} className="node-editor-control">
+    <article key={field.id} className="node-editor-requirement">
       <span>{field.label}</span>
-
-      <div className="node-checkbox-list">
-        {field.options.map((option) => (
-          <label key={option}>
-            <input type="checkbox" />
-            <small>{option}</small>
-          </label>
-        ))}
-      </div>
-
+      <strong>{describeField(field)}</strong>
       <small>{field.helper}</small>
-    </div>
+
+      {field.type === 'file' && (
+        <p>
+          Los nodos no cargan archivos por separado. La asociación real
+          utilizará el source_id de una fuente ya procesada.
+        </p>
+      )}
+    </article>
   )
 }
 
 function NodeEditor({
   node,
   onClose,
-  onAttachFiles,
   onSuggestNextNode,
 }: NodeEditorProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>('config')
-  const status = node.data.status ?? 'idle'
-  const files = node.data.files ?? []
-  const resultSummary = node.data.resultSummary ?? []
 
   const experience = getNodeActionExperience({
     title: node.data.title,
@@ -160,11 +64,12 @@ function NodeEditor({
     outputType: node.data.outputType,
   })
 
-  const hasResults = resultSummary.length > 0 || status === 'success'
+  const availability = getToolAvailability(node.data.toolId)
 
   return (
     <aside
-      className={`node-editor-panel node-editor-status-${status}`}
+      className="node-editor-panel node-editor-design-mode"
+      aria-label={`Diseño técnico: ${experience.title}`}
       onClick={(event) => event.stopPropagation()}
     >
       <div className="node-editor-animated-border" />
@@ -178,8 +83,8 @@ function NodeEditor({
           <div className="node-editor-title-row">
             <strong>{experience.title}</strong>
 
-            <span className={`node-editor-state-badge ${status}`}>
-              {statusIcon[status]} {statusLabel[status]}
+            <span className="node-editor-design-badge">
+              Modo diseño
             </span>
           </div>
 
@@ -190,24 +95,31 @@ function NodeEditor({
           type="button"
           className="node-editor-close"
           onClick={onClose}
+          aria-label="Cerrar diseño del nodo"
           title="Cerrar"
         >
           ×
         </button>
       </header>
 
-      <div className={`node-editor-live-state ${status}`}>
-        <div className="node-editor-live-orb">
-          {statusIcon[status]}
-        </div>
+      <div className="node-editor-design-state">
+        <div className="node-editor-live-orb">◇</div>
 
         <div>
-          <strong>{statusLabel[status]}</strong>
-          <small>{statusDescription[status]}</small>
+          <strong>Diseño técnico, sin ejecución</strong>
+          <small>
+            Este nodo documenta intención, requisitos y salida esperada.
+            No procesa datos ni genera resultados.
+          </small>
         </div>
       </div>
 
-      <nav className="node-editor-tabs">
+      <div className="node-editor-capability-state">
+        <b data-status={availability.status}>{availability.label}</b>
+        <p>{availability.description}</p>
+      </div>
+
+      <nav className="node-editor-tabs" aria-label="Secciones del diseño">
         {(Object.keys(tabLabels) as EditorTab[]).map((tab) => (
           <button
             key={tab}
@@ -224,7 +136,7 @@ function NodeEditor({
         {activeTab === 'config' && (
           <div className="node-editor-tab-content">
             <div className="node-editor-hero-card">
-              <span>Acción</span>
+              <span>Acción propuesta</span>
               <strong>{experience.title}</strong>
               <p>{experience.actionDescription}</p>
             </div>
@@ -234,117 +146,21 @@ function NodeEditor({
 
               {experience.fields.length > 0 ? (
                 <div className="node-editor-fields">
-                  {experience.fields.map((field) =>
-                    renderField(field, node, onAttachFiles),
-                  )}
+                  {experience.fields.map(renderField)}
                 </div>
               ) : (
                 <div className="node-editor-empty-config">
-                  <strong>Configuración flexible</strong>
+                  <strong>Sin requisitos definidos</strong>
                   <small>
-                    Este nodo no requiere campos obligatorios. Permanecerá sin ejecutar hasta
-                    conectarse con una capacidad backend real.
+                    Los parámetros se especificarán cuando exista una capacidad backend real.
                   </small>
                 </div>
               )}
             </div>
 
             <div className="node-editor-section">
-              <h3>Resultado esperado</h3>
+              <h3>Salida esperada</h3>
               <p>{experience.expectedResult}</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'execution' && (
-          <div className="node-editor-tab-content">
-            <div className={`node-editor-status-card ${status}`}>
-              <span className={`node-editor-status-dot ${status}`} />
-
-              <div>
-                <small>Estado del nodo</small>
-                <strong>{statusLabel[status]}</strong>
-              </div>
-            </div>
-
-            <div className="execution-timeline">
-              <article className={status !== 'idle' ? 'done' : ''}>
-                <span>1</span>
-                <div>
-                  <strong>Configurar entrada</strong>
-                  <small>Definir archivos, conexión, reglas o parámetros.</small>
-                </div>
-              </article>
-
-              <article className={status === 'running' || status === 'success' ? 'done' : ''}>
-                <span>2</span>
-                <div>
-                  <strong>Ejecutar acción</strong>
-                  <small>El nodo procesa la información según su propósito.</small>
-                </div>
-              </article>
-
-              <article className={status === 'success' ? 'done' : ''}>
-                <span>3</span>
-                <div>
-                  <strong>Generar salida</strong>
-                  <small>Resultados, trazabilidad o salida para el siguiente nodo.</small>
-                </div>
-              </article>
-            </div>
-
-            <div className="node-editor-empty-result">
-              <strong>Ejecución todavía no disponible</strong>
-              <small>
-                Este paso permanece planificado hasta conectarse a una capacidad backend real.
-              </small>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'results' && (
-          <div className="node-editor-tab-content">
-            <div className="node-editor-section">
-              <h3>Resultados del nodo</h3>
-
-              {!hasResults && (
-                <div className="node-editor-empty-result">
-                  <strong>Sin resultados todavía</strong>
-                  <small>{experience.resultEmptyState}</small>
-                </div>
-              )}
-
-              {files.length > 0 && (
-                <div className="node-files-list">
-                  {files.map((file) => (
-                    <article key={file.id} className="node-file-item">
-                      <div className="node-file-badge">F</div>
-
-                      <div>
-                        <strong>{file.name}</strong>
-                        <small>{formatFileSize(file.size)} · {file.type}</small>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-
-              {resultSummary.length > 0 && (
-                <ul className="node-result-list">
-                  {resultSummary.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="node-editor-section">
-              <h3>Lectura ejecutiva</h3>
-              <p>
-                Aquí se mostrará el resumen operativo del nodo: archivos cargados, tablas
-                detectadas, registros analizados, hallazgos, diferencias o reporte generado,
-                según la acción ejecutada.
-              </p>
             </div>
           </div>
         )}
@@ -352,46 +168,30 @@ function NodeEditor({
         {activeTab === 'trace' && (
           <div className="node-editor-tab-content">
             <div className="trace-map-card">
-              <strong>Trazabilidad del nodo</strong>
+              <strong>Trazabilidad esperada</strong>
               <p>
-                Cada resultado debe poder rastrearse a su origen: archivo, hoja, fila, tabla,
-                registro, regla aplicada o evidencia documental.
+                Cuando exista un ejecutor, cada resultado deberá vincularse
+                con source_id, archivo, hoja, fila, regla aplicada y ejecución.
               </p>
             </div>
 
-            {files.length > 0 ? (
-              <div className="trace-list">
-                {files.map((file, index) => (
-                  <article key={file.id}>
-                    <span>{String(index + 1).padStart(2, '0')}</span>
-                    <div>
-                      <strong>{file.name}</strong>
-                      <small>Metadato local adjunto; no procesado por el backend</small>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="node-editor-empty-result">
-                <strong>Sin trazabilidad generada</strong>
-                <small>
-                  La trazabilidad aparecerá cuando este nodo produzca resultados o consuma fuentes.
-                </small>
-              </div>
-            )}
+            <div className="node-editor-empty-result">
+              <strong>Sin trazabilidad de ejecución</strong>
+              <small>
+                En modo de diseño no se generan evidencias, métricas ni resultados.
+              </small>
+            </div>
           </div>
         )}
-
       </section>
 
       <footer className="node-editor-footer">
-
         <button
           type="button"
           className="node-editor-primary"
           onClick={() => onSuggestNextNode(node.id)}
         >
-          Conectar siguiente paso
+          Conectar siguiente paso del diseño
         </button>
       </footer>
     </aside>

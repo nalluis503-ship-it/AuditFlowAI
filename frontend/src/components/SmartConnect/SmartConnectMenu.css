@@ -155,3 +155,37 @@
   border: 1px solid rgba(148, 163, 184, 0.14);
   cursor: pointer;
 }
+
+
+.smart-connect-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.smart-connect-item-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.smart-connect-status {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.smart-connect-item em {
+  width: auto;
+  min-width: 54px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.smart-connect-menu button:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
