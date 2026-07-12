@@ -41,5 +41,8 @@ def api_status(container: Container) -> ApiResponse[dict]:
             "module": "api-v1",
             "version": container.settings.app_version,
             "simulated_data": False,
+            "durable_jobs": True,
+            "local_worker_enabled": container.settings.job_worker_enabled,
+            "local_worker_running": container.job_worker.is_running,
         },
     )

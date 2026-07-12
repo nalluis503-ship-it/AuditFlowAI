@@ -17,6 +17,10 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
         max_upload_bytes=64 * 1024 * 1024,
         duckdb_memory_limit="256MB",
         duckdb_threads=2,
+        job_worker_enabled=False,
+        job_retry_base_seconds=1,
+        job_heartbeat_seconds=1.0,
+        job_lease_seconds=30,
     )
     upgrade_database(settings)
     with TestClient(create_app(settings)) as test_client:

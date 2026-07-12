@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from anyio import to_thread
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -22,14 +23,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        app.state.container = build_container(resolved_settings)
-        yield
+        container = build_container(resolved_settings)
+        app.state.container = container
+        container.job_worker.start()
+        try:
+            yield
+        finally:
+            await to_thread.run_sync(container.job_worker.stop)
 
     application = FastAPI(
         title=resolved_settings.app_name,
         version=resolved_settings.app_version,
         description=(
-            "Traceable data-ingestion and profiling foundation for AuditFlowAI."
+            "Traceable data foundation with durable local job execution "
+            "for AuditFlowAI."
         ),
         lifespan=lifespan,
     )
@@ -49,17 +56,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         payload = ApiResponse[dict](
             success=False,
             message=exc.message,
-            error=ApiError(
-                code=exc.code,
-                details=exc.details,
-            ),
+            error=ApiError(code=exc.code, details=exc.details),
         )
         content = payload.model_dump(mode="json")
         content["detail"] = exc.message
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=content,
-        )
+        return JSONResponse(status_code=exc.status_code, content=content)
 
     @application.exception_handler(RequestValidationError)
     async def validation_error_handler(
@@ -76,10 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         content = payload.model_dump(mode="json")
         content["detail"] = payload.message
-        return JSONResponse(
-            status_code=422,
-            content=content,
-        )
+        return JSONResponse(status_code=422, content=content)
 
     @application.exception_handler(Exception)
     async def unexpected_error_handler(
@@ -94,16 +92,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         payload = ApiResponse[dict](
             success=False,
             message="An unexpected server error occurred.",
-            error=ApiError(
-                code="internal_server_error",
-            ),
+            error=ApiError(code="internal_server_error"),
         )
         content = payload.model_dump(mode="json")
         content["detail"] = payload.message
-        return JSONResponse(
-            status_code=500,
-            content=content,
-        )
+        return JSONResponse(status_code=500, content=content)
 
     return application
 

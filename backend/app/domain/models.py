@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class SourceStatus(StrEnum):
     RECEIVING = "receiving"
+    STORED = "stored"
     PROFILING = "profiling"
     READY = "ready"
     FAILED = "failed"

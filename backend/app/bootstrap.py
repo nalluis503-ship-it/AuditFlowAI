@@ -1,12 +1,18 @@
+from uuid import uuid4
+
 from backend.app.api.dependencies import AppContainer
 from backend.app.application.capability_service import CapabilityService
+from backend.app.application.job_service import JobService
 from backend.app.application.source_service import SourceService
 from backend.app.core.config import Settings
+from backend.app.execution.registry import JobExecutorRegistry
+from backend.app.execution.runner import JobRunner
+from backend.app.execution.source_profile_executor import SourceProfileExecutor
+from backend.app.execution.worker import LocalJobWorker
 from backend.app.infrastructure.database import Database
+from backend.app.infrastructure.job_repository import SqlAlchemyJobRepository
 from backend.app.infrastructure.migrations import head_revision
-from backend.app.infrastructure.source_repository import (
-    SqlAlchemySourceRepository,
-)
+from backend.app.infrastructure.source_repository import SqlAlchemySourceRepository
 from backend.app.infrastructure.storage import FileSystemSourceStorage
 from backend.app.profiling.duckdb_profiler import DuckDBTabularProfiler
 from backend.app.profiling.registry import ProfilerRegistry
@@ -19,22 +25,46 @@ def build_container(settings: Settings) -> AppContainer:
     database = Database(settings)
     database.require_schema(head_revision(settings))
 
-    repository = SqlAlchemySourceRepository(database)
-    storage = FileSystemSourceStorage(settings)
+    source_repository = SqlAlchemySourceRepository(database)
+    source_storage = FileSystemSourceStorage(settings)
     profilers = ProfilerRegistry(
         [
             DuckDBTabularProfiler(settings),
             XlsxProfiler(settings),
         ]
     )
+    source_service = SourceService(
+        repository=source_repository,
+        storage=source_storage,
+        profilers=profilers,
+    )
+
+    job_repository = SqlAlchemyJobRepository(database)
+    executors = JobExecutorRegistry([SourceProfileExecutor(source_service)])
+    job_service = JobService(
+        repository=job_repository,
+        executors=executors,
+        settings=settings,
+    )
+    worker_id = f"local-{uuid4().hex}"
+    runner = JobRunner(
+        repository=job_repository,
+        executors=executors,
+        settings=settings,
+        worker_id=worker_id,
+    )
+    worker = LocalJobWorker(
+        repository=job_repository,
+        runner=runner,
+        settings=settings,
+        worker_id=worker_id,
+    )
 
     return AppContainer(
         settings=settings,
         database=database,
-        source_service=SourceService(
-            repository=repository,
-            storage=storage,
-            profilers=profilers,
-        ),
+        source_service=source_service,
+        job_service=job_service,
         capability_service=CapabilityService(),
+        job_worker=worker,
     )
