@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "AuditFlow AI API"
-    app_version: str = "0.12.0"
+    app_version: str = "0.13.0"
     environment: str = "development"
 
     storage_root: Path = BACKEND_ROOT / "storage"
@@ -55,6 +55,8 @@ class Settings(BaseSettings):
         ge=1,
     )
     xlsx_max_compression_ratio: float = Field(default=1000.0, ge=1.0)
+    tabular_max_inputs: int = Field(default=32, ge=1, le=100)
+    tabular_max_steps: int = Field(default=200, ge=1, le=500)
 
     sqlite_busy_timeout_seconds: int = Field(default=30, ge=1, le=300)
     job_worker_enabled: bool = True

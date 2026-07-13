@@ -9,6 +9,7 @@ from backend.app.domain.models import (
     SourceProfile,
     SourceStatus,
 )
+from backend.app.domain.tabular_models import TabularPlan, TabularRunRecord
 from backend.app.domain.upload_models import UploadSessionStatus
 
 
@@ -154,6 +155,32 @@ class UploadCompletionResult(BaseModel):
 
 class UploadPartList(BaseModel):
     items: list[UploadPartView]
+    total: int
+    limit: int
+    offset: int
+
+
+class TabularRunCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=512)
+    output_name: str = Field(min_length=1, max_length=512)
+    plan: TabularPlan
+    priority: int = Field(default=0, ge=-1000, le=1000)
+    max_attempts: int | None = Field(default=None, ge=1, le=1000)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class TabularRunView(BaseModel):
+    run: TabularRunRecord
+    job: JobRecord | None = None
+
+
+class TabularRunSubmission(BaseModel):
+    run: TabularRunRecord
+    job: JobRecord
+
+
+class TabularRunList(BaseModel):
+    items: list[TabularRunView]
     total: int
     limit: int
     offset: int

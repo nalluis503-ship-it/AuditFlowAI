@@ -4,6 +4,7 @@ from backend.app.api.dependencies import AppContainer
 from backend.app.application.capability_service import CapabilityService
 from backend.app.application.job_service import JobService
 from backend.app.application.source_service import SourceService
+from backend.app.application.tabular_service import TabularRunService
 from backend.app.application.upload_service import UploadSessionService
 from backend.app.core.config import Settings
 from backend.app.execution.registry import JobExecutorRegistry
@@ -12,13 +13,18 @@ from backend.app.execution.source_complete_upload_executor import (
     SourceCompleteUploadExecutor,
 )
 from backend.app.execution.source_profile_executor import SourceProfileExecutor
+from backend.app.execution.tabular_run_executor import TabularRunExecutor
 from backend.app.execution.worker import LocalJobWorker
 from backend.app.infrastructure.database import Database
+from backend.app.infrastructure.duckdb_tabular_engine import DuckDBTabularEngine
 from backend.app.infrastructure.job_repository import SqlAlchemyJobRepository
 from backend.app.infrastructure.migrations import head_revision
 from backend.app.infrastructure.resumable_storage import ResumableUploadStorage
 from backend.app.infrastructure.source_repository import SqlAlchemySourceRepository
 from backend.app.infrastructure.storage import FileSystemSourceStorage
+from backend.app.infrastructure.tabular_repository import (
+    SqlAlchemyTabularRunRepository,
+)
 from backend.app.infrastructure.upload_repository import SqlAlchemyUploadRepository
 from backend.app.profiling.duckdb_profiler import DuckDBTabularProfiler
 from backend.app.profiling.registry import ProfilerRegistry
@@ -46,6 +52,14 @@ def build_container(settings: Settings) -> AppContainer:
     )
 
     job_repository = SqlAlchemyJobRepository(database)
+    tabular_repository = SqlAlchemyTabularRunRepository(database)
+    tabular_service = TabularRunService(
+        repository=tabular_repository,
+        job_repository=job_repository,
+        source_service=source_service,
+        engine=DuckDBTabularEngine(settings),
+        settings=settings,
+    )
     upload_repository = SqlAlchemyUploadRepository(database)
     upload_storage = ResumableUploadStorage(settings.upload_storage)
     upload_service = UploadSessionService(
@@ -59,6 +73,7 @@ def build_container(settings: Settings) -> AppContainer:
         [
             SourceProfileExecutor(source_service),
             SourceCompleteUploadExecutor(upload_service),
+            TabularRunExecutor(tabular_service),
         ]
     )
     job_service = JobService(
@@ -84,6 +99,7 @@ def build_container(settings: Settings) -> AppContainer:
         settings=settings,
         database=database,
         source_service=source_service,
+        tabular_service=tabular_service,
         upload_service=upload_service,
         job_service=job_service,
         capability_service=CapabilityService(),

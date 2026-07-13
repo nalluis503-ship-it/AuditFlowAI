@@ -136,6 +136,27 @@ class CapabilityService:
                 limitations=[],
             ),
             Capability(
+                id="tabular.execute",
+                name="Execute typed tabular plan",
+                description=(
+                    "Combines one or more verified sources through typed select, "
+                    "filter, sort, distinct, aggregate, join, union, and limit "
+                    "operations, then registers the Parquet result as a derived "
+                    "source with durable lineage."
+                ),
+                status=CapabilityStatus.AVAILABLE,
+                inputs=["source_records", "typed_tabular_plan"],
+                outputs=["derived_source", "tabular_run", "job_events"],
+                engines=["duckdb", "pyarrow", "openpyxl", "local_worker"],
+                supports_large_data=True,
+                execution_mode=ExecutionMode.DURABLE_BACKGROUND,
+                limitations=[
+                    "Raw SQL is intentionally not accepted.",
+                    "XLSX sheets are staged sequentially before execution.",
+                    "Cancellation is cooperative between engine stages.",
+                ],
+            ),
+            Capability(
                 id="job.control",
                 name="Durable job control",
                 description=(

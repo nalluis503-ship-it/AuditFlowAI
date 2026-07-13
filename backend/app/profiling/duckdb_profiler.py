@@ -1,4 +1,3 @@
-import csv
 import re
 from pathlib import Path
 from typing import Any
@@ -15,6 +14,7 @@ from backend.app.domain.models import (
     SheetProfile,
     SourcePreview,
 )
+from backend.app.profiling.csv_format import inspect_csv_format
 from backend.app.profiling.header_detection import (
     detect_header,
     infer_data_type,
@@ -79,17 +79,17 @@ class DuckDBTabularProfiler:
         connection = self._connect(source_id)
         try:
             if extension == ".csv":
-                encoding, delimiter, _ = self._sample_csv(path)
+                csv_format = inspect_csv_format(
+                    path, scan_rows=self._settings.header_scan_rows
+                )
                 try:
                     relation = connection.read_csv(
                         str(path),
                         header=True,
-                        delimiter=delimiter,
+                        delimiter=csv_format.delimiter,
                         skiprows=(sheet.header_row_number or 1) - 1,
                         all_varchar=True,
-                        encoding=(
-                            "utf-8" if encoding.startswith("utf-8") else "latin-1"
-                        ),
+                        encoding=(csv_format.duckdb_encoding),
                     )
                 except Exception as exc:
                     raise InvalidSourceError(
@@ -151,8 +151,8 @@ class DuckDBTabularProfiler:
         source_id: str,
         options: ProfileOptions,
     ) -> SheetProfile:
-        encoding, delimiter, sampled_rows = self._sample_csv(path)
-        detection = detect_header(sampled_rows)
+        csv_format = inspect_csv_format(path, scan_rows=self._settings.header_scan_rows)
+        detection = detect_header(csv_format.sampled_rows)
         sheet_name = path.stem
         explicit_header = options.header_for(sheet_name)
         header_row = explicit_header or detection.row_number or 1
@@ -163,18 +163,18 @@ class DuckDBTabularProfiler:
                 relation = connection.read_csv(
                     str(path),
                     header=True,
-                    delimiter=delimiter,
+                    delimiter=csv_format.delimiter,
                     skiprows=header_row - 1,
                     all_varchar=True,
-                    encoding=("utf-8" if encoding.startswith("utf-8") else "latin-1"),
+                    encoding=csv_format.duckdb_encoding,
                 )
             except Exception as exc:
                 raise InvalidSourceError(
                     "The CSV file could not be parsed.",
                     code="csv_parse_failed",
                     details={
-                        "encoding": encoding,
-                        "delimiter": delimiter,
+                        "encoding": csv_format.encoding,
+                        "delimiter": csv_format.delimiter,
                         "header_row_number": header_row,
                     },
                 ) from exc
@@ -304,53 +304,3 @@ class DuckDBTabularProfiler:
             ),
             columns=column_profiles,
         )
-
-    def _sample_csv(
-        self,
-        path: Path,
-    ) -> tuple[str, str, list[list[str]]]:
-        last_error: UnicodeDecodeError | None = None
-
-        for encoding in ("utf-8-sig", "utf-8", "cp1252"):
-            try:
-                with path.open(
-                    "r",
-                    encoding=encoding,
-                    errors="strict",
-                    newline="",
-                ) as source:
-                    sample_text = source.read(65536)
-                    if "\x00" in sample_text:
-                        raise InvalidSourceError(
-                            "The CSV contains binary null bytes.",
-                            code="binary_csv",
-                        )
-
-                    try:
-                        dialect = csv.Sniffer().sniff(
-                            sample_text,
-                            delimiters=",;\t|",
-                        )
-                        delimiter = dialect.delimiter
-                    except csv.Error:
-                        delimiter = ","
-
-                    source.seek(0)
-                    reader = csv.reader(
-                        source,
-                        delimiter=delimiter,
-                    )
-                    rows: list[list[str]] = []
-                    for row in reader:
-                        rows.append(row)
-                        if len(rows) >= self._settings.header_scan_rows:
-                            break
-
-                    return encoding, delimiter, rows
-            except UnicodeDecodeError as exc:
-                last_error = exc
-
-        raise InvalidSourceError(
-            "The CSV encoding is not supported. Use UTF-8 or Windows-1252.",
-            code="unsupported_csv_encoding",
-        ) from last_error

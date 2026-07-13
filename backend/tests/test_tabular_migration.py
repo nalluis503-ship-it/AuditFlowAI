@@ -9,11 +9,12 @@ from sqlalchemy import inspect, text
 from backend.app.core.config import Settings
 from backend.app.infrastructure.database import Base, Database
 from backend.app.infrastructure.job_repository import JobEventRow, JobRow  # noqa: F401
-from backend.app.infrastructure.migrations import (
-    alembic_config,
-    upgrade_database,
-)
+from backend.app.infrastructure.migrations import alembic_config, upgrade_database
 from backend.app.infrastructure.source_repository import SourceRow  # noqa: F401
+from backend.app.infrastructure.tabular_repository import (  # noqa: F401
+    TabularRunInputRow,
+    TabularRunRow,
+)
 from backend.app.infrastructure.upload_repository import (  # noqa: F401
     UploadPartRow,
     UploadSessionRow,
@@ -28,19 +29,13 @@ def _settings(tmp_path: Path) -> Settings:
     )
 
 
-def test_resumable_upload_schema_is_managed_by_alembic(tmp_path: Path):
+def test_tabular_schema_matches_alembic_metadata(tmp_path: Path):
     settings = _settings(tmp_path)
     upgrade_database(settings)
     database = Database(settings)
 
     tables = set(inspect(database.engine).get_table_names())
-    assert {
-        "sources",
-        "jobs",
-        "job_events",
-        "upload_sessions",
-        "upload_parts",
-    }.issubset(tables)
+    assert {"tabular_runs", "tabular_run_inputs"}.issubset(tables)
     assert database.current_revision() == "20260712_0004"
     assert database.schema_is_ready("20260712_0004") is True
 
@@ -54,9 +49,9 @@ def test_resumable_upload_schema_is_managed_by_alembic(tmp_path: Path):
     assert differences == []
 
 
-def test_upgrade_from_durable_jobs_preserves_existing_data(tmp_path: Path):
+def test_upgrade_from_resumable_sources_preserves_existing_rows(tmp_path: Path):
     settings = _settings(tmp_path)
-    upgrade_database(settings, "20260712_0002")
+    upgrade_database(settings, "20260712_0003")
     database = Database(settings)
     now = datetime.now(UTC)
 
@@ -107,27 +102,28 @@ def test_upgrade_from_durable_jobs_preserves_existing_data(tmp_path: Path):
         job_count = session.scalar(
             text("SELECT COUNT(*) FROM jobs WHERE id = 'kept-job'")
         )
-        upload_count = session.scalar(text("SELECT COUNT(*) FROM upload_sessions"))
+        run_count = session.scalar(text("SELECT COUNT(*) FROM tabular_runs"))
+        input_count = session.scalar(text("SELECT COUNT(*) FROM tabular_run_inputs"))
 
     assert source_count == 1
     assert job_count == 1
-    assert upload_count == 0
+    assert run_count == 0
+    assert input_count == 0
     assert database.current_revision() == "20260712_0004"
 
 
-def test_upload_migration_downgrades_to_jobs_and_reapplies(tmp_path: Path):
+def test_tabular_migration_downgrades_and_reapplies(tmp_path: Path):
     settings = _settings(tmp_path)
     upgrade_database(settings)
     database = Database(settings)
 
-    command.downgrade(alembic_config(settings), "20260712_0002")
+    command.downgrade(alembic_config(settings), "20260712_0003")
     tables = set(inspect(database.engine).get_table_names())
-    assert "sources" in tables
-    assert "jobs" in tables
-    assert "job_events" in tables
-    assert "upload_sessions" not in tables
-    assert "upload_parts" not in tables
-    assert database.current_revision() == "20260712_0002"
+    assert "tabular_runs" not in tables
+    assert "tabular_run_inputs" not in tables
+    assert "upload_sessions" in tables
+    assert "upload_parts" in tables
+    assert database.current_revision() == "20260712_0003"
 
     upgrade_database(settings)
     assert database.current_revision() == "20260712_0004"

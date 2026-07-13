@@ -76,6 +76,8 @@ class Database:
             "job_events",
             "upload_sessions",
             "upload_parts",
+            "tabular_runs",
+            "tabular_run_inputs",
         }
         return (
             required.issubset(tables) and self.current_revision() == expected_revision
@@ -90,6 +92,8 @@ class Database:
             "job_events",
             "upload_sessions",
             "upload_parts",
+            "tabular_runs",
+            "tabular_run_inputs",
         }
         if required.issubset(tables) and current_revision == expected_revision:
             return

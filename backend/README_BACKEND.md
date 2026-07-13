@@ -1,100 +1,240 @@
-# AuditFlowAI Backend v0.12.0 — Scalable Sources
+# AuditFlowAI Backend v0.13.0 — Motor tabular general
 
-Base trazable para registrar, transferir, perfilar y consultar fuentes tabulares reales sin cargar archivos completos en memoria.
+Backend trazable para recibir fuentes reales, ejecutar trabajo durable y materializar operaciones tabulares generales sin convertir la experiencia del auditor en un editor SQL.
 
 ## Alcance real
 
-Este checkpoint agrega una capa general de fuentes escalables sobre la ejecución durable de v0.11.0. No está diseñado alrededor de comparar dos bases ni de otro caso fijo: proporciona infraestructura reutilizable para cualquier análisis posterior.
+Este checkpoint agrega un motor de operaciones tabulares sobre las fuentes escalables de v0.12.0. No está construido alrededor de comparar dos bases ni de un flujo fijo. Una ejecución puede usar una o varias fuentes y combinar operaciones reutilizables:
 
-Capacidades ejecutables:
+- seleccionar y renombrar columnas;
+- filtrar registros con expresiones tipadas;
+- ordenar;
+- eliminar filas duplicadas;
+- agrupar y calcular medidas;
+- relacionar fuentes mediante joins;
+- concatenar fuentes compatibles mediante union;
+- limitar resultados;
+- materializar el resultado como una nueva fuente Parquet.
+
+Cada resultado queda registrado como una fuente real, con perfil, SHA-256, job durable, eventos y linaje de entrada. La IA todavía no forma parte de este checkpoint: primero se consolida el motor verificable que una futura orquestación podrá utilizar.
+
+## Principio de experiencia
+
+El contrato técnico usa planes tipados para que el backend pueda validar y ejecutar operaciones de manera segura. El auditor normal no deberá redactar JSON, SQL, nombres de tablas ni expresiones técnicas. La interfaz y la futura IA traducirán la intención del auditor a este contrato interno.
+
+El backend no acepta SQL libre:
+
+```text
+intención del auditor
+→ plan tipado validado
+→ job durable
+→ DuckDB ejecuta fuera de memoria
+→ resultado Parquet
+→ fuente derivada y trazable
+```
+
+## Capacidades disponibles
+
+### Fuentes
 
 - Carga directa por streaming de CSV, XLSX y Parquet.
-- Sesiones de carga fragmentada y reanudable.
-- Verificación SHA-256 de cada parte y del archivo completo.
-- Partes idempotentes y transferibles fuera de orden.
-- Ensamblado durable mediante job persistente.
-- Recuperación de cargas después de reiniciar la API.
-- Expiración y limpieza de sesiones abandonadas.
-- Registro persistente de fuentes y perfiles.
-- Perfilado fuera de memoria con DuckDB para CSV y Parquet.
-- Perfilado secuencial de XLSX con openpyxl y conteo de duplicados en disco.
+- Carga fragmentada, reanudable y verificable por SHA-256.
+- Perfilado real con DuckDB u openpyxl.
 - Detección y confirmación de encabezados.
-- Vista previa paginada y limitada para CSV, XLSX y Parquet.
-- Jobs durables con progreso, eventos, cancelación, reintentos y recuperación.
-- Migraciones exclusivamente mediante Alembic.
+- Vista previa limitada y paginada.
+- Catálogo persistente de fuentes.
 
-No incorpora todavía conectores SQL institucionales, almacenamiento de objetos distribuido, transformación universal, ejecutores estadísticos, análisis documental ni orquestación de IA.
+### Ejecución
+
+- Jobs persistentes con progreso, eventos y leases.
+- Recuperación después de reiniciar la API.
+- Cancelación cooperativa.
+- Reintentos controlados.
+- Idempotencia.
+- Registro separado de corridas tabulares y su linaje.
+
+### Motor tabular
+
+- Planes versionados y tipados.
+- Una o muchas fuentes de entrada.
+- Operaciones `select`, `filter`, `sort`, `distinct`, `aggregate`, `join`, `union` y `limit`.
+- Expresiones de columnas, literales, casts, operaciones binarias, operaciones unarias y funciones autorizadas.
+- Materialización Parquet comprimida con Zstandard.
+- Conservación exacta de sumas enteras mediante `DECIMAL(38,0)` al escribir Parquet; un valor fuera de rango falla en lugar de degradarse silenciosamente a punto flotante.
+- Preparación secuencial de hojas XLSX a Parquet temporal.
+- Verificación del esquema físico antes y después de ejecutar.
+- Resultado registrado y perfilado como fuente derivada.
 
 ## Arquitectura
 
 ```text
 backend/
 ├── app/
-│   ├── api/                 # HTTP y contratos
+│   ├── api/                 # HTTP y contratos externos
 │   ├── application/         # Casos de uso
 │   ├── core/                # Configuración, errores y logging
-│   ├── domain/              # Modelos, puertos y contratos
-│   ├── execution/           # Registro, runner, worker y ejecutores
-│   ├── infrastructure/      # SQLite, repositorios y almacenamiento
-│   └── profiling/           # Perfilado y vista previa
-├── migrations/              # Alembic
-├── scripts/                 # Operaciones de migración
-└── tests/                   # Pruebas funcionales y de recuperación
+│   ├── domain/              # Modelos y puertos
+│   ├── execution/           # Jobs, runner, worker y ejecutores
+│   ├── infrastructure/      # SQLite, DuckDB, repositorios y archivos
+│   ├── profiling/           # Perfilado, encabezados y vista previa
+│   └── tabular/             # Contrato y compilador del plan tipado
+├── migrations/              # Revisiones Alembic
+├── scripts/                 # Operaciones administrativas
+└── tests/                   # Pruebas funcionales, migraciones y recuperación
 ```
 
-La transferencia fragmentada, el catálogo, la ejecución y el perfilado están separados. El auditor no necesita conocer partes, DuckDB, SQL ni rutas físicas; esas decisiones pertenecen al backend.
+El compilador no recibe fragmentos SQL del cliente. Construye SQL interno únicamente a partir de modelos cerrados, operadores enumerados, identificadores citados y literales escapados.
 
-## Flujo de carga reanudable
+## Linaje de una corrida
+
+Al aceptar una corrida se conserva una instantánea por entrada:
+
+- posición y alias;
+- identificador de fuente;
+- nombre y tamaño del archivo;
+- SHA-256;
+- hoja seleccionada;
+- fila de encabezado;
+- versión y motor del perfil;
+- columnas ordenadas, posiciones y tipos inferidos.
+
+Antes de ejecutar o reintentar, el backend vuelve a comprobar esa evidencia. Si la fuente fue reinterpretada, reperfilada con otro encabezado o ya no coincide con la instantánea, la corrida falla de forma permanente con `tabular_input_lineage_changed` en lugar de producir un resultado ambiguo.
+
+Mientras una fuente participa en una corrida tabular activa no puede eliminarse ni reperfilarse. Del mismo modo, una fuente con otro job activo no puede incorporarse a una nueva corrida tabular.
+
+## Formato del plan interno
+
+Ejemplo reducido de una agregación:
+
+```json
+{
+  "version": "1.0",
+  "inputs": [
+    {
+      "alias": "movimientos",
+      "source_id": "SOURCE_ID"
+    }
+  ],
+  "steps": [
+    {
+      "type": "filter",
+      "id": "relevantes",
+      "input": "movimientos",
+      "where": {
+        "kind": "binary",
+        "operator": "greater_than",
+        "arguments": [
+          {
+            "kind": "cast",
+            "data_type": "decimal",
+            "arguments": [
+              {"kind": "column", "column": "importe"}
+            ]
+          },
+          {"kind": "literal", "value": 100000}
+        ]
+      }
+    },
+    {
+      "type": "aggregate",
+      "id": "resumen",
+      "input": "relevantes",
+      "group_by": [
+        {
+          "name": "proveedor",
+          "expression": {"kind": "column", "column": "proveedor"}
+        }
+      ],
+      "measures": [
+        {
+          "name": "importe_total",
+          "function": "sum",
+          "expression": {
+            "kind": "cast",
+            "data_type": "decimal",
+            "arguments": [
+              {"kind": "column", "column": "importe"}
+            ]
+          }
+        },
+        {
+          "name": "movimientos",
+          "function": "count"
+        }
+      ]
+    }
+  ],
+  "output": "resumen"
+}
+```
+
+Este JSON es un contrato backend, no la interfaz final del auditor.
+
+## Operaciones y expresiones
+
+### Pasos
+
+| Paso | Propósito |
+|---|---|
+| `select` | Proyectar, transformar y renombrar columnas |
+| `filter` | Conservar filas que cumplan una expresión |
+| `sort` | Ordenar por una o varias expresiones |
+| `distinct` | Eliminar filas completamente duplicadas |
+| `aggregate` | Agrupar y calcular medidas |
+| `join` | Relacionar dos conjuntos disponibles |
+| `union` | Concatenar conjuntos con columnas ordenadas compatibles |
+| `limit` | Restringir el número de filas materializadas |
+
+### Tipos de expresión
+
+- `column`
+- `literal`
+- `cast`
+- `unary`
+- `binary`
+- `function`
+
+### Casts
+
+- `string`
+- `integer`
+- `decimal`
+- `boolean`
+- `date`
+- `timestamp`
+
+### Agregaciones
+
+- `count`
+- `count_distinct`
+- `sum`
+- `average`
+- `minimum`
+- `maximum`
+
+El catálogo completo y vigente se consulta en `GET /api/v1/tabular-runs/catalog`.
+
+## Migración
+
+La revisión de este checkpoint es:
 
 ```text
-crear sesión
-→ subir partes verificadas
-→ reanudar después de interrupción
-→ solicitar finalización
-→ job durable ensambla y verifica
-→ registrar fuente
-→ perfilar
-→ conservar evidencia y eventos
+20260712_0004
 ```
 
-Cada sesión reserva desde el inicio un `source_id`. Esto hace que la finalización sea idempotente y recuperable incluso si el proceso se interrumpe entre el ensamblado, el registro y el perfilado.
+La migración conserva las tablas anteriores y agrega:
 
-## Requisitos
+- `tabular_runs`
+- `tabular_run_inputs`
 
-- Python 3.13
-- Windows PowerShell para los comandos del proyecto actual
-
-## Crear entorno
-
-Desde la raíz del repositorio:
-
-```powershell
-py -3.13 -m venv .\backend\.venv
-
-.\backend\.venv\Scripts\python.exe -m pip install `
-  --upgrade pip
-
-.\backend\.venv\Scripts\python.exe -m pip install `
-  -r .\backend\requirements-dev.txt
-```
-
-## Aplicar migraciones
+Aplicar migraciones:
 
 ```powershell
 .\backend\.venv\Scripts\python.exe -m `
   backend.scripts.migrate_database
 ```
 
-La revisión de este checkpoint es:
-
-```text
-20260712_0003
-```
-
-La migración `0003` conserva `sources`, `jobs` y `job_events`, y agrega:
-
-- `upload_sessions`
-- `upload_parts`
+La API no crea ni altera tablas al iniciar. Si la base no está en la revisión esperada, el arranque falla con una instrucción explícita para migrar.
 
 ## Ejecutar
 
@@ -110,68 +250,41 @@ La migración `0003` conserva `sources`, `jobs` y `job_events`, y agrega:
 | Método | Endpoint | Propósito |
 |---|---|---|
 | GET | `/health` | Disponibilidad del proceso |
-| GET | `/ready` | Acceso a base y almacenamiento |
-| GET | `/api/v1/status` | Estado del backend y worker |
-| GET | `/api/v1/capabilities` | Capacidades ejecutables reales |
-| POST | `/api/v1/upload-sessions` | Crear una carga reanudable |
-| GET | `/api/v1/upload-sessions/{id}` | Consultar avance y siguiente parte faltante |
-| GET | `/api/v1/upload-sessions/{id}/parts` | Listar partes registradas de forma paginada |
-| PUT | `/api/v1/upload-sessions/{id}/parts/{n}` | Guardar una parte binaria verificada |
-| POST | `/api/v1/upload-sessions/{id}/complete` | Crear job durable de ensamblado y perfilado |
-| DELETE | `/api/v1/upload-sessions/{id}` | Abortar una sesión sin job activo |
-| POST | `/api/v1/sources/ingest-async` | Carga directa y perfilado durable |
+| GET | `/ready` | Base y almacenamiento disponibles |
+| GET | `/api/v1/status` | Estado real del backend y worker |
+| GET | `/api/v1/capabilities` | Capacidades con ejecutores reales |
+| POST | `/api/v1/upload-sessions` | Crear carga reanudable |
+| PUT | `/api/v1/upload-sessions/{id}/parts/{n}` | Guardar parte verificada |
+| POST | `/api/v1/upload-sessions/{id}/complete` | Finalizar mediante job durable |
+| POST | `/api/v1/sources/ingest-async` | Carga directa con perfilado durable |
 | GET | `/api/v1/sources` | Listar fuentes |
-| GET | `/api/v1/sources/{id}` | Recuperar fuente y perfil |
-| GET | `/api/v1/sources/{id}/preview` | Obtener vista previa limitada por hoja |
+| GET | `/api/v1/sources/{id}` | Consultar fuente y perfil |
+| GET | `/api/v1/sources/{id}/preview` | Vista previa limitada |
 | POST | `/api/v1/sources/{id}/reprofile-async` | Reperfilar con encabezados confirmados |
-| DELETE | `/api/v1/sources/{id}` | Eliminar una fuente sin jobs activos |
-| GET | `/api/v1/jobs/{id}` | Consultar estado y progreso |
-| GET | `/api/v1/jobs/{id}/events` | Consultar trazabilidad |
+| DELETE | `/api/v1/sources/{id}` | Eliminar fuente sin trabajo activo |
+| GET | `/api/v1/jobs/{id}` | Estado y progreso de un job |
+| GET | `/api/v1/jobs/{id}/events` | Trazabilidad de un job |
 | POST | `/api/v1/jobs/{id}/cancel` | Solicitar cancelación |
-| POST | `/api/v1/jobs/{id}/retry` | Reintentar un job terminal permitido |
+| POST | `/api/v1/jobs/{id}/retry` | Reintentar job terminal permitido |
+| GET | `/api/v1/tabular-runs/catalog` | Catálogo del plan tipado |
+| POST | `/api/v1/tabular-runs` | Crear corrida y job durable |
+| GET | `/api/v1/tabular-runs` | Listar corridas y estado de job |
+| GET | `/api/v1/tabular-runs/{id}` | Consultar plan, linaje y resultado |
+| POST | `/api/v1/tabular-runs/{id}/cancel` | Cancelar corrida activa |
+| POST | `/api/v1/tabular-runs/{id}/retry` | Reintentar corrida fallida o cancelada |
 
-## Contrato de partes
+## Configuración
 
-Cada `PUT` usa cuerpo binario y requiere:
-
-```text
-X-Part-SHA256: <64 caracteres hexadecimales>
-Content-Type: application/octet-stream
-```
-
-El backend valida:
-
-- número de parte dentro del plan;
-- tamaño exacto esperado;
-- SHA-256 declarado;
-- idempotencia de la parte;
-- integridad física antes del ensamblado;
-- tamaño y SHA-256 del archivo completo.
-
-Las partes pueden llegar fuera de orden. La finalización no se acepta mientras falte alguna.
-
-## Configuración de cargas escalables
-
-| Variable | Valor predeterminado |
+| Variable | Predeterminado |
 |---|---:|
-| `AUDITFLOW_RESUMABLE_MAX_UPLOAD_BYTES` | `1099511627776` (1 TiB) |
-| `AUDITFLOW_RESUMABLE_DEFAULT_PART_BYTES` | `16777216` (16 MiB) |
-| `AUDITFLOW_RESUMABLE_MIN_PART_BYTES` | `1048576` (1 MiB) |
-| `AUDITFLOW_RESUMABLE_MAX_PART_BYTES` | `134217728` (128 MiB) |
-| `AUDITFLOW_RESUMABLE_MAX_PARTS` | `100000` |
-| `AUDITFLOW_UPLOAD_SESSION_TTL_SECONDS` | `86400` |
+| `AUDITFLOW_DUCKDB_MEMORY_LIMIT` | `1GB` |
+| `AUDITFLOW_DUCKDB_THREADS` | `4` |
+| `AUDITFLOW_TABULAR_MAX_INPUTS` | `32` |
+| `AUDITFLOW_TABULAR_MAX_STEPS` | `200` |
+| `AUDITFLOW_JOB_DEFAULT_MAX_ATTEMPTS` | `3` |
+| `AUDITFLOW_JOB_MAX_ATTEMPTS` | `10` |
 
-Los límites son configurables. El valor máximo declarado no garantiza capacidad física: el despliegue debe definir cuotas de disco, concurrencia y retención de acuerdo con el servidor real.
-
-## Vista previa segura
-
-La vista previa nunca devuelve la fuente completa. Acepta:
-
-- `sheet`: hoja opcional;
-- `offset`: hasta `100000`;
-- `limit`: máximo `200` filas.
-
-CSV y Parquet utilizan DuckDB con límite y desplazamiento. XLSX se lee en modo secuencial. Esta función es para inspección, no sustituye el futuro motor general de consultas.
+Los límites del modelo también restringen el número de columnas, condiciones, claves de ordenamiento y argumentos por expresión. El despliegue debe ajustar memoria, disco, concurrencia y retención de acuerdo con el servidor real.
 
 ## Pruebas y calidad
 
@@ -183,37 +296,42 @@ CSV y Parquet utilizan DuckDB con límite y desplazamiento. XLSX se lee en modo 
 .\backend\.venv\Scripts\python.exe -m pip check
 ```
 
-Las pruebas cubren:
+La suite cubre, entre otros puntos:
 
-- migración `0002 → 0003` sin pérdida de fuentes ni jobs;
+- migración `0003 → 0004` sin pérdida de fuentes ni jobs;
 - paridad Alembic/SQLAlchemy;
 - downgrade y reaplicación;
-- carga reanudable fuera de orden;
-- reanudación después de reiniciar;
-- idempotencia y conflictos de partes;
-- tamaños y checksums incorrectos;
-- finalización durable y perfilado real;
-- expiración y limpieza en arranque;
-- vistas previas CSV, XLSX y Parquet;
-- cancelación, reintentos, leases y recuperación de jobs;
-- compatibilidad con la carga directa existente.
+- selección, filtros, agregaciones, joins, union, distinct y limit;
+- múltiples fuentes;
+- hojas XLSX;
+- materialización y perfilado del Parquet derivado;
+- sumas enteras exactas al escribir Parquet;
+- idempotencia de corridas;
+- rechazo de SQL libre;
+- escape de identificadores y literales;
+- errores permanentes de conversión de datos;
+- protección ante reperfilado concurrente;
+- detección de cambios en el linaje antes de reintentar;
+- cancelación, reintentos, jobs y eventos.
 
 ## Límites declarados
 
-- El proveedor de almacenamiento actual es el sistema de archivos local.
+- El almacenamiento actual es el sistema de archivos local.
 - El worker actual es local y no distribuido.
-- El ensamblado necesita espacio temporal equivalente al archivo original, además del destino final durante la confirmación.
-- La vista previa XLSX debe recorrer filas anteriores al `offset` porque el formato no permite acceso columnar eficiente.
-- No se convierte todavía toda fuente a una representación Parquet interna.
-- No existen todavía cuotas por usuario o auditoría.
-- No existen todavía conectores SQL administrados ni almacenamiento S3-compatible.
-- Los resultados de análisis todavía no se registran como fuentes derivadas.
+- DuckDB es el único motor tabular conectado en este checkpoint.
+- XLSX se convierte temporalmente de forma secuencial antes de ejecutar.
+- La cancelación ocurre entre etapas; no interrumpe todavía una consulta DuckDB en curso.
+- Los joins no cuentan todavía con estimación de cardinalidad ni advertencias de explosión de filas.
+- No existen funciones de ventana, pivotes, reglas de validación de alto nivel ni operaciones estadísticas avanzadas.
+- No existen conectores SQL institucionales ni almacenamiento S3-compatible.
+- No existe todavía un catálogo semántico para traducir nombres técnicos a conceptos de auditoría.
+- No existe todavía una IA que genere planes; el motor solo ejecuta contratos reales y verificables.
 
 ## Próximos incrementos recomendados
 
-1. Artefactos y fuentes derivadas con linaje.
-2. Materialización Parquet configurable para CSV y XLSX.
-3. Cuotas, retención y administración de almacenamiento.
-4. Proveedor S3-compatible sin cambiar los casos de uso.
-5. Catálogo semántico de fuentes institucionales administradas.
-6. Motor general de operaciones: filtrar, agrupar, transformar, validar y detectar.
+1. Estimación previa de costo, cardinalidad y tamaño de salida.
+2. Validaciones de calidad de datos como operaciones de primera clase.
+3. Fuentes derivadas con relaciones navegables desde el catálogo.
+4. Conectores administrados de solo lectura con pushdown.
+5. Cuotas, retención y almacenamiento de objetos.
+6. Orquestación asistida por IA sobre el registro real de capacidades.

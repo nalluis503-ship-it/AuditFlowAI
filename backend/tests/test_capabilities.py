@@ -13,6 +13,7 @@ def test_capability_registry_exposes_only_executable_capabilities(client):
         "source.reprofile",
         "source.catalog",
         "job.control",
+        "tabular.execute",
     }
     profile = next(item for item in capabilities if item["id"] == "source.profile")
     assert profile["execution_mode"] == "durable_background"

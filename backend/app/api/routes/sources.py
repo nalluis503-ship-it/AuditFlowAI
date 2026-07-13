@@ -177,6 +177,11 @@ async def reprofile_source(
     request: ReprofileRequest,
     container: Container,
 ) -> ApiResponse[SourceProfile]:
+    container.tabular_service.ensure_source_is_idle(source_id)
+    container.job_service.ensure_resource_is_idle(
+        resource_type="source",
+        resource_id=source_id,
+    )
     profile = await container.source_service.reprofile(
         source_id,
         options=request,
@@ -198,6 +203,11 @@ def reprofile_source_async(
     container: Container,
 ) -> ApiResponse[AsyncReprofileResult]:
     container.source_service.get(source_id)
+    container.tabular_service.ensure_source_is_idle(source_id)
+    container.job_service.ensure_resource_is_idle(
+        resource_type="source",
+        resource_id=source_id,
+    )
     job = container.job_service.create(
         job_type="source.profile",
         payload={
@@ -226,5 +236,6 @@ def delete_source(
         resource_type="source",
         resource_id=source_id,
     )
+    container.tabular_service.ensure_source_is_idle(source_id)
     container.source_service.delete(source_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

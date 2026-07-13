@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from anyio import to_thread
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -35,8 +36,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=resolved_settings.app_name,
         version=resolved_settings.app_version,
         description=(
-            "Traceable data foundation with durable jobs and resumable "
-            "large-source ingestion for AuditFlowAI."
+            "Traceable data foundation with durable jobs, resumable ingestion, "
+            "and typed out-of-core tabular execution for AuditFlowAI."
         ),
         lifespan=lifespan,
     )
@@ -72,7 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             message="The request is invalid.",
             error=ApiError(
                 code="request_validation_error",
-                details={"errors": exc.errors()},
+                details={"errors": jsonable_encoder(exc.errors())},
             ),
         )
         content = payload.model_dump(mode="json")
