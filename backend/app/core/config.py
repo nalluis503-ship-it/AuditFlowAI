@@ -18,12 +18,34 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "AuditFlow AI API"
-    app_version: str = "0.11.0"
+    app_version: str = "0.12.0"
     environment: str = "development"
 
     storage_root: Path = BACKEND_ROOT / "storage"
     max_upload_bytes: int = Field(default=5 * 1024 * 1024 * 1024, ge=1)
     upload_chunk_bytes: int = Field(default=8 * 1024 * 1024, ge=64 * 1024)
+    resumable_max_upload_bytes: int = Field(
+        default=1024 * 1024 * 1024 * 1024,
+        ge=1,
+    )
+    resumable_default_part_bytes: int = Field(
+        default=16 * 1024 * 1024,
+        ge=64 * 1024,
+    )
+    resumable_min_part_bytes: int = Field(
+        default=1024 * 1024,
+        ge=64 * 1024,
+    )
+    resumable_max_part_bytes: int = Field(
+        default=128 * 1024 * 1024,
+        ge=1024 * 1024,
+    )
+    resumable_max_parts: int = Field(default=100000, ge=1, le=1000000)
+    upload_session_ttl_seconds: int = Field(
+        default=24 * 60 * 60,
+        ge=300,
+        le=30 * 24 * 60 * 60,
+    )
     header_scan_rows: int = Field(default=50, ge=5, le=500)
     profile_sample_values: int = Field(default=5, ge=0, le=25)
     duckdb_memory_limit: str = "1GB"
@@ -48,6 +70,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_job_timing(self) -> "Settings":
+        if self.resumable_min_part_bytes > self.resumable_default_part_bytes:
+            raise ValueError(
+                "resumable_min_part_bytes cannot exceed resumable_default_part_bytes."
+            )
+        if self.resumable_default_part_bytes > self.resumable_max_part_bytes:
+            raise ValueError(
+                "resumable_default_part_bytes cannot exceed resumable_max_part_bytes."
+            )
         if self.job_heartbeat_seconds >= self.job_lease_seconds:
             raise ValueError(
                 "job_heartbeat_seconds must be lower than job_lease_seconds."
@@ -69,6 +99,10 @@ class Settings(BaseSettings):
         return self.storage_root / "profiles"
 
     @property
+    def upload_storage(self) -> Path:
+        return self.storage_root / "uploads"
+
+    @property
     def work_storage(self) -> Path:
         return self.storage_root / "work"
 
@@ -85,6 +119,7 @@ class Settings(BaseSettings):
             self.storage_root,
             self.source_storage,
             self.profile_storage,
+            self.upload_storage,
             self.work_storage,
         ):
             directory.mkdir(parents=True, exist_ok=True)

@@ -7,6 +7,10 @@ from backend.app.core.config import get_settings
 from backend.app.infrastructure.database import Base
 from backend.app.infrastructure.job_repository import JobEventRow, JobRow  # noqa: F401
 from backend.app.infrastructure.source_repository import SourceRow  # noqa: F401
+from backend.app.infrastructure.upload_repository import (  # noqa: F401
+    UploadPartRow,
+    UploadSessionRow,
+)
 
 config = context.config
 if config.config_file_name is not None:

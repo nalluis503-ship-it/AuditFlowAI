@@ -9,6 +9,7 @@ from backend.app.domain.models import (
     SourceProfile,
     SourceStatus,
 )
+from backend.app.domain.upload_models import UploadSessionStatus
 
 
 class ApiError(BaseModel):
@@ -104,3 +105,55 @@ class JobList(BaseModel):
 class JobEventList(BaseModel):
     items: list[JobEvent]
     total: int
+
+
+class UploadSessionCreateRequest(BaseModel):
+    original_name: str = Field(min_length=1, max_length=512)
+    media_type: str | None = Field(default=None, max_length=255)
+    size_bytes: int = Field(ge=1)
+    part_size_bytes: int | None = Field(default=None, ge=1)
+    sha256: str | None = Field(default=None, min_length=64, max_length=64)
+
+
+class UploadSessionView(BaseModel):
+    id: str
+    source_id: str
+    original_name: str
+    extension: str
+    media_type: str | None
+    expected_size_bytes: int
+    part_size_bytes: int
+    expected_part_count: int
+    expected_sha256: str | None
+    status: UploadSessionStatus
+    created_at: datetime
+    updated_at: datetime
+    expires_at: datetime
+    completed_at: datetime | None
+    error_code: str | None
+    error_message: str | None
+    received_part_count: int
+    received_size_bytes: int
+    progress_percent: float
+    next_missing_part_number: int | None = None
+
+
+class UploadPartView(BaseModel):
+    session_id: str
+    part_number: int
+    size_bytes: int
+    sha256: str
+    created_at: datetime
+
+
+class UploadCompletionResult(BaseModel):
+    upload_session: UploadSessionView
+    job: JobRecord
+    source_id: str
+
+
+class UploadPartList(BaseModel):
+    items: list[UploadPartView]
+    total: int
+    limit: int
+    offset: int

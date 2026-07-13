@@ -7,7 +7,8 @@ def test_system_routes_are_real_and_ready(client):
     payload = status.json()["data"]
     assert payload["simulated_data"] is False
     assert payload["durable_jobs"] is True
-    assert payload["version"] == "0.11.0"
+    assert payload["resumable_uploads"] is True
+    assert payload["version"] == "0.12.0"
 
     paths = set(client.app.openapi()["paths"])
     assert "/api/v1/sources/ingest" in paths

@@ -33,6 +33,15 @@ def test_ingests_profiles_persists_and_lists_csv(client):
     loaded = client.get(f"/api/v1/sources/{profile['id']}").json()["data"]
     assert loaded["profile"]["sha256"] == profile["sha256"]
 
+    preview = client.get(
+        f"/api/v1/sources/{profile['id']}/preview",
+        params={"offset": 1, "limit": 2},
+    ).json()["data"]
+    assert preview["columns"] == ["id", "name", "amount"]
+    assert preview["rows"] == [["2", None, "20"], ["2", None, "20"]]
+    assert preview["total_rows"] == 3
+    assert preview["returned"] == 2
+
 
 def test_rejects_unsupported_source_without_simulation(client):
     response = client.post(

@@ -42,6 +42,7 @@ def api_status(container: Container) -> ApiResponse[dict]:
             "version": container.settings.app_version,
             "simulated_data": False,
             "durable_jobs": True,
+            "resumable_uploads": True,
             "local_worker_enabled": container.settings.job_worker_enabled,
             "local_worker_running": container.job_worker.is_running,
         },

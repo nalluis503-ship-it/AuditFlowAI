@@ -33,10 +33,19 @@ def test_profiles_xlsx_with_streaming_engine(client):
     )
 
     assert response.status_code == 201
-    sheet = response.json()["data"]["sheets"][0]
+    profile = response.json()["data"]
+    sheet = profile["sheets"][0]
     assert sheet["header_row_number"] == 2
     assert sheet["row_count"] == 2
     assert sheet["duplicate_row_count"] == 1
+
+    preview = client.get(
+        f"/api/v1/sources/{profile['id']}/preview",
+        params={"sheet": "Invoices", "limit": 1},
+    ).json()["data"]
+    assert preview["columns"] == ["folio", "amount"]
+    assert preview["rows"] == [["A-1", "100"]]
+    assert preview["total_rows"] == 2
 
 
 def test_profiles_parquet(client):
@@ -61,8 +70,16 @@ def test_profiles_parquet(client):
     )
 
     assert response.status_code == 201
-    sheet = response.json()["data"]["sheets"][0]
+    profile = response.json()["data"]
+    sheet = profile["sheets"][0]
     assert sheet["row_count"] == 3
     assert sheet["column_count"] == 2
     assert sheet["duplicate_row_count"] == 1
     assert sheet["null_cell_count"] == 2
+
+    preview = client.get(
+        f"/api/v1/sources/{profile['id']}/preview",
+        params={"offset": 0, "limit": 3},
+    ).json()["data"]
+    assert preview["columns"] == ["id", "amount"]
+    assert preview["rows"] == [["1", "10"], ["2", None], ["2", None]]

@@ -1,28 +1,29 @@
-# AuditFlowAI Backend v0.11.0 — Durable Jobs
+# AuditFlowAI Backend v0.12.0 — Scalable Sources
 
-Base trazable para ingestión de fuentes reales, perfilado tabular y ejecución durable en segundo plano.
+Base trazable para registrar, transferir, perfilar y consultar fuentes tabulares reales sin cargar archivos completos en memoria.
 
 ## Alcance real
 
-Este checkpoint agrega una cola local persistente sobre SQLite. No incorpora todavía un orquestador universal de IA, conectores SQL institucionales, cargas fragmentadas reanudables ni ejecución distribuida.
+Este checkpoint agrega una capa general de fuentes escalables sobre la ejecución durable de v0.11.0. No está diseñado alrededor de comparar dos bases ni de otro caso fijo: proporciona infraestructura reutilizable para cualquier análisis posterior.
 
 Capacidades ejecutables:
 
-- Carga por bloques de CSV, XLSX y Parquet.
-- Almacenamiento atómico y SHA-256 durante la recepción.
-- Catálogo persistente de fuentes.
-- Perfilado con DuckDB y openpyxl.
+- Carga directa por streaming de CSV, XLSX y Parquet.
+- Sesiones de carga fragmentada y reanudable.
+- Verificación SHA-256 de cada parte y del archivo completo.
+- Partes idempotentes y transferibles fuera de orden.
+- Ensamblado durable mediante job persistente.
+- Recuperación de cargas después de reiniciar la API.
+- Expiración y limpieza de sesiones abandonadas.
+- Registro persistente de fuentes y perfiles.
+- Perfilado fuera de memoria con DuckDB para CSV y Parquet.
+- Perfilado secuencial de XLSX con openpyxl y conteo de duplicados en disco.
 - Detección y confirmación de encabezados.
-- Trabajos persistentes con estados, progreso, intentos y resultados.
-- Reclamación atómica mediante lease para evitar doble ejecución.
-- Heartbeat del worker y recuperación de leases vencidos.
-- Cancelación cooperativa.
-- Reintentos automáticos con espera exponencial y reintento manual.
-- Registro persistente de eventos del trabajo.
-- Idempotencia opcional para evitar trabajos duplicados.
-- Conservación de jobs y fuentes después de reiniciar la API.
-- Protección para impedir eliminar una fuente con trabajo activo.
+- Vista previa paginada y limitada para CSV, XLSX y Parquet.
+- Jobs durables con progreso, eventos, cancelación, reintentos y recuperación.
 - Migraciones exclusivamente mediante Alembic.
+
+No incorpora todavía conectores SQL institucionales, almacenamiento de objetos distribuido, transformación universal, ejecutores estadísticos, análisis documental ni orquestación de IA.
 
 ## Arquitectura
 
@@ -32,30 +33,31 @@ backend/
 │   ├── api/                 # HTTP y contratos
 │   ├── application/         # Casos de uso
 │   ├── core/                # Configuración, errores y logging
-│   ├── domain/              # Modelos y contratos
+│   ├── domain/              # Modelos, puertos y contratos
 │   ├── execution/           # Registro, runner, worker y ejecutores
 │   ├── infrastructure/      # SQLite, repositorios y almacenamiento
-│   └── profiling/           # Motores de perfilado
+│   └── profiling/           # Perfilado y vista previa
 ├── migrations/              # Alembic
 ├── scripts/                 # Operaciones de migración
 └── tests/                   # Pruebas funcionales y de recuperación
 ```
 
-El dominio de jobs no depende de FastAPI, DuckDB ni del worker local. Los ejecutores se registran mediante `JobExecutorRegistry`, por lo que un backend de cola externo podrá sustituir al worker local sin cambiar el contrato HTTP ni los casos de uso.
+La transferencia fragmentada, el catálogo, la ejecución y el perfilado están separados. El auditor no necesita conocer partes, DuckDB, SQL ni rutas físicas; esas decisiones pertenecen al backend.
 
-## Modelo de ejecución
+## Flujo de carga reanudable
 
 ```text
-solicitud
-→ archivo almacenado
-→ job queued
-→ claim atómico
-→ running + lease
-→ heartbeat + progreso
-→ succeeded / failed / canceled
+crear sesión
+→ subir partes verificadas
+→ reanudar después de interrupción
+→ solicitar finalización
+→ job durable ensambla y verifica
+→ registrar fuente
+→ perfilar
+→ conservar evidencia y eventos
 ```
 
-Si el proceso se interrumpe, el lease vence. Otro worker recupera el trabajo y lo vuelve a colocar en cola mientras queden intentos disponibles.
+Cada sesión reserva desde el inicio un `source_id`. Esto hace que la finalización sea idempotente y recuperable incluso si el proceso se interrumpe entre el ensamblado, el registro y el perfilado.
 
 ## Requisitos
 
@@ -86,10 +88,13 @@ py -3.13 -m venv .\backend\.venv
 La revisión de este checkpoint es:
 
 ```text
-20260712_0002
+20260712_0003
 ```
 
-La migración `0002` conserva intactas las filas existentes en `sources` y agrega `jobs` y `job_events`.
+La migración `0003` conserva `sources`, `jobs` y `job_events`, y agrega:
+
+- `upload_sessions`
+- `upload_parts`
 
 ## Ejecutar
 
@@ -100,50 +105,73 @@ La migración `0002` conserva intactas las filas existentes en `sources` y agreg
   --port 8000
 ```
 
-El worker local inicia y se detiene con el ciclo de vida de FastAPI. Puede deshabilitarse con:
-
-```text
-AUDITFLOW_JOB_WORKER_ENABLED=false
-```
-
-## Endpoints
+## Endpoints principales
 
 | Método | Endpoint | Propósito |
 |---|---|---|
 | GET | `/health` | Disponibilidad del proceso |
 | GET | `/ready` | Acceso a base y almacenamiento |
-| GET | `/api/v1/status` | Estado y worker local |
+| GET | `/api/v1/status` | Estado del backend y worker |
 | GET | `/api/v1/capabilities` | Capacidades ejecutables reales |
-| POST | `/api/v1/sources/ingest-async` | Almacenar fuente y crear job de perfilado |
-| POST | `/api/v1/sources/{id}/reprofile-async` | Reperfilar mediante job durable |
-| POST | `/api/v1/sources/ingest` | Compatibilidad síncrona temporal |
-| POST | `/api/v1/sources/{id}/reprofile` | Compatibilidad síncrona temporal |
+| POST | `/api/v1/upload-sessions` | Crear una carga reanudable |
+| GET | `/api/v1/upload-sessions/{id}` | Consultar avance y siguiente parte faltante |
+| GET | `/api/v1/upload-sessions/{id}/parts` | Listar partes registradas de forma paginada |
+| PUT | `/api/v1/upload-sessions/{id}/parts/{n}` | Guardar una parte binaria verificada |
+| POST | `/api/v1/upload-sessions/{id}/complete` | Crear job durable de ensamblado y perfilado |
+| DELETE | `/api/v1/upload-sessions/{id}` | Abortar una sesión sin job activo |
+| POST | `/api/v1/sources/ingest-async` | Carga directa y perfilado durable |
 | GET | `/api/v1/sources` | Listar fuentes |
 | GET | `/api/v1/sources/{id}` | Recuperar fuente y perfil |
-| DELETE | `/api/v1/sources/{id}` | Eliminar fuente sin jobs activos |
-| POST | `/api/v1/jobs` | Crear un job registrado |
-| GET | `/api/v1/jobs` | Listar y filtrar jobs |
+| GET | `/api/v1/sources/{id}/preview` | Obtener vista previa limitada por hoja |
+| POST | `/api/v1/sources/{id}/reprofile-async` | Reperfilar con encabezados confirmados |
+| DELETE | `/api/v1/sources/{id}` | Eliminar una fuente sin jobs activos |
 | GET | `/api/v1/jobs/{id}` | Consultar estado y progreso |
-| GET | `/api/v1/jobs/{id}/events` | Consultar trazabilidad del job |
+| GET | `/api/v1/jobs/{id}/events` | Consultar trazabilidad |
 | POST | `/api/v1/jobs/{id}/cancel` | Solicitar cancelación |
-| POST | `/api/v1/jobs/{id}/retry` | Reintentar manualmente |
+| POST | `/api/v1/jobs/{id}/retry` | Reintentar un job terminal permitido |
 
-## Configuración de jobs
+## Contrato de partes
+
+Cada `PUT` usa cuerpo binario y requiere:
+
+```text
+X-Part-SHA256: <64 caracteres hexadecimales>
+Content-Type: application/octet-stream
+```
+
+El backend valida:
+
+- número de parte dentro del plan;
+- tamaño exacto esperado;
+- SHA-256 declarado;
+- idempotencia de la parte;
+- integridad física antes del ensamblado;
+- tamaño y SHA-256 del archivo completo.
+
+Las partes pueden llegar fuera de orden. La finalización no se acepta mientras falte alguna.
+
+## Configuración de cargas escalables
 
 | Variable | Valor predeterminado |
 |---|---:|
-| `AUDITFLOW_JOB_WORKER_ENABLED` | `true` |
-| `AUDITFLOW_JOB_POLL_INTERVAL_SECONDS` | `0.5` |
-| `AUDITFLOW_JOB_LEASE_SECONDS` | `300` |
-| `AUDITFLOW_JOB_HEARTBEAT_SECONDS` | `30` |
-| `AUDITFLOW_JOB_RECOVERY_INTERVAL_SECONDS` | `60` |
-| `AUDITFLOW_JOB_SHUTDOWN_TIMEOUT_SECONDS` | `30` |
-| `AUDITFLOW_JOB_DEFAULT_MAX_ATTEMPTS` | `3` |
-| `AUDITFLOW_JOB_MAX_ATTEMPTS` | `10` |
-| `AUDITFLOW_JOB_RETRY_BASE_SECONDS` | `5` |
-| `AUDITFLOW_JOB_RETRY_MAX_SECONDS` | `3600` |
+| `AUDITFLOW_RESUMABLE_MAX_UPLOAD_BYTES` | `1099511627776` (1 TiB) |
+| `AUDITFLOW_RESUMABLE_DEFAULT_PART_BYTES` | `16777216` (16 MiB) |
+| `AUDITFLOW_RESUMABLE_MIN_PART_BYTES` | `1048576` (1 MiB) |
+| `AUDITFLOW_RESUMABLE_MAX_PART_BYTES` | `134217728` (128 MiB) |
+| `AUDITFLOW_RESUMABLE_MAX_PARTS` | `100000` |
+| `AUDITFLOW_UPLOAD_SESSION_TTL_SECONDS` | `86400` |
 
-El heartbeat debe ser menor que el lease.
+Los límites son configurables. El valor máximo declarado no garantiza capacidad física: el despliegue debe definir cuotas de disco, concurrencia y retención de acuerdo con el servidor real.
+
+## Vista previa segura
+
+La vista previa nunca devuelve la fuente completa. Acepta:
+
+- `sheet`: hoja opcional;
+- `offset`: hasta `100000`;
+- `limit`: máximo `200` filas.
+
+CSV y Parquet utilizan DuckDB con límite y desplazamiento. XLSX se lee en modo secuencial. Esta función es para inspección, no sustituye el futuro motor general de consultas.
 
 ## Pruebas y calidad
 
@@ -157,29 +185,35 @@ El heartbeat debe ser menor que el lease.
 
 Las pruebas cubren:
 
-- migración desde `20260712_0001` sin pérdida de fuentes;
-- paridad exacta entre el esquema Alembic y los modelos SQLAlchemy;
-- downgrade y reaplicación limpia de la revisión durable;
-- persistencia y eventos;
-- claim atómico;
-- cancelación antes y durante la ejecución;
-- reintento manual con límite global;
-- backoff exponencial con espera máxima configurada;
-- recuperación de leases vencidos;
-- supervivencia de un job a un reinicio;
-- perfilado durable real de una fuente;
-- idempotencia;
-- protección de recursos con trabajos activos.
+- migración `0002 → 0003` sin pérdida de fuentes ni jobs;
+- paridad Alembic/SQLAlchemy;
+- downgrade y reaplicación;
+- carga reanudable fuera de orden;
+- reanudación después de reiniciar;
+- idempotencia y conflictos de partes;
+- tamaños y checksums incorrectos;
+- finalización durable y perfilado real;
+- expiración y limpieza en arranque;
+- vistas previas CSV, XLSX y Parquet;
+- cancelación, reintentos, leases y recuperación de jobs;
+- compatibilidad con la carga directa existente.
 
 ## Límites declarados
 
-- La transferencia HTTP todavía no es fragmentada ni reanudable.
-- El worker actual es local; no es una cola distribuida.
-- La cancelación del perfilador es cooperativa entre etapas, no interrumpe una llamada interna de DuckDB u openpyxl.
-- El progreso durante el escaneo es por etapa, no por porcentaje exacto de filas.
-- Los resultados de jobs deben contener metadatos y referencias a artefactos, no grandes conjuntos de datos incrustados en SQLite.
-- No existen todavía conectores SQL, ejecutores estadísticos generales, análisis documental ni planificador de IA.
+- El proveedor de almacenamiento actual es el sistema de archivos local.
+- El worker actual es local y no distribuido.
+- El ensamblado necesita espacio temporal equivalente al archivo original, además del destino final durante la confirmación.
+- La vista previa XLSX debe recorrer filas anteriores al `offset` porque el formato no permite acceso columnar eficiente.
+- No se convierte todavía toda fuente a una representación Parquet interna.
+- No existen todavía cuotas por usuario o auditoría.
+- No existen todavía conectores SQL administrados ni almacenamiento S3-compatible.
+- Los resultados de análisis todavía no se registran como fuentes derivadas.
 
-## Seguridad de reintentos
+## Próximos incrementos recomendados
 
-`AUDITFLOW_JOB_RETRY_MAX_SECONDS` limita la espera del backoff exponencial. Los reintentos manuales respetan `AUDITFLOW_JOB_MAX_ATTEMPTS`.
+1. Artefactos y fuentes derivadas con linaje.
+2. Materialización Parquet configurable para CSV y XLSX.
+3. Cuotas, retención y administración de almacenamiento.
+4. Proveedor S3-compatible sin cambiar los casos de uso.
+5. Catálogo semántico de fuentes institucionales administradas.
+6. Motor general de operaciones: filtrar, agrupar, transformar, validar y detectar.

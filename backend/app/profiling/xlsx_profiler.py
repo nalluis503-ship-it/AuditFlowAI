@@ -15,6 +15,7 @@ from backend.app.domain.models import (
     ColumnProfile,
     ProfileOptions,
     SheetProfile,
+    SourcePreview,
 )
 from backend.app.profiling.header_detection import (
     build_column_names,
@@ -85,6 +86,98 @@ class XlsxProfiler:
                 )
                 for worksheet in workbook.worksheets
             ]
+        finally:
+            workbook.close()
+
+    def preview(
+        self,
+        path: Path,
+        *,
+        source_id: str,
+        sheet: SheetProfile,
+        offset: int,
+        limit: int,
+    ) -> SourcePreview:
+        self._validate_container(path)
+        try:
+            workbook = load_workbook(
+                filename=path,
+                read_only=True,
+                data_only=True,
+            )
+        except (
+            BadZipFile,
+            InvalidFileException,
+            KeyError,
+            OSError,
+            ValueError,
+        ) as exc:
+            raise InvalidSourceError(
+                "The XLSX workbook could not be opened for preview.",
+                code="xlsx_preview_open_failed",
+            ) from exc
+
+        try:
+            if sheet.name not in workbook.sheetnames:
+                raise InvalidSourceError(
+                    "The requested sheet does not exist.",
+                    code="source_sheet_not_found",
+                    status_code=404,
+                    details={"sheet": sheet.name},
+                )
+            worksheet = workbook[sheet.name]
+            columns = [column.name for column in sheet.columns]
+            header_row = sheet.header_row_number
+            if header_row is None or not columns:
+                return SourcePreview(
+                    source_id=source_id,
+                    sheet_name=sheet.name,
+                    columns=columns,
+                    rows=[],
+                    offset=offset,
+                    limit=limit,
+                    returned=0,
+                    total_rows=sheet.row_count,
+                )
+
+            preview_rows: list[list[str | None]] = []
+            data_index = 0
+            for physical_row, raw_row in enumerate(
+                worksheet.iter_rows(values_only=True),
+                start=1,
+            ):
+                if physical_row <= header_row:
+                    continue
+                values = _trim_trailing_nulls(list(raw_row))
+                if not values:
+                    continue
+                if data_index < offset:
+                    data_index += 1
+                    continue
+
+                padded = values[: len(columns)] + [None] * max(
+                    0, len(columns) - len(values)
+                )
+                preview_rows.append(
+                    [
+                        None if is_null(value) else normalize_text(value)
+                        for value in padded
+                    ]
+                )
+                data_index += 1
+                if len(preview_rows) >= limit:
+                    break
+
+            return SourcePreview(
+                source_id=source_id,
+                sheet_name=sheet.name,
+                columns=columns,
+                rows=preview_rows,
+                offset=offset,
+                limit=limit,
+                returned=len(preview_rows),
+                total_rows=sheet.row_count,
+            )
         finally:
             workbook.close()
 

@@ -13,6 +13,7 @@ from backend.app.domain.models import (
     HeaderCandidate,
     ProfileOptions,
     SheetProfile,
+    SourcePreview,
 )
 from backend.app.profiling.header_detection import (
     detect_header,
@@ -64,6 +65,74 @@ class DuckDBTabularProfiler:
             "The selected profiling engine does not support this source.",
             code="unsupported_profile_engine",
         )
+
+    def preview(
+        self,
+        path: Path,
+        *,
+        source_id: str,
+        sheet: SheetProfile,
+        offset: int,
+        limit: int,
+    ) -> SourcePreview:
+        extension = path.suffix.lower()
+        connection = self._connect(source_id)
+        try:
+            if extension == ".csv":
+                encoding, delimiter, _ = self._sample_csv(path)
+                try:
+                    relation = connection.read_csv(
+                        str(path),
+                        header=True,
+                        delimiter=delimiter,
+                        skiprows=(sheet.header_row_number or 1) - 1,
+                        all_varchar=True,
+                        encoding=(
+                            "utf-8" if encoding.startswith("utf-8") else "latin-1"
+                        ),
+                    )
+                except Exception as exc:
+                    raise InvalidSourceError(
+                        "The CSV preview could not be created.",
+                        code="csv_preview_failed",
+                    ) from exc
+            elif extension == ".parquet":
+                try:
+                    relation = connection.read_parquet(str(path))
+                except Exception as exc:
+                    raise InvalidSourceError(
+                        "The Parquet preview could not be created.",
+                        code="parquet_preview_failed",
+                    ) from exc
+            else:
+                raise InvalidSourceError(
+                    "The selected preview engine does not support this source.",
+                    code="unsupported_preview_engine",
+                )
+
+            view_name = _SAFE_VIEW.sub("_", f"preview_{uuid4().hex}")
+            relation.create_view(view_name, replace=True)
+            quoted_view = _quote_identifier(view_name)
+            raw_rows = connection.execute(
+                f"SELECT * FROM {quoted_view} LIMIT ? OFFSET ?",
+                [limit, offset],
+            ).fetchall()
+            rows = [
+                [None if is_null(value) else normalize_text(value) for value in row]
+                for row in raw_rows
+            ]
+            return SourcePreview(
+                source_id=source_id,
+                sheet_name=sheet.name,
+                columns=list(relation.columns),
+                rows=rows,
+                offset=offset,
+                limit=limit,
+                returned=len(rows),
+                total_rows=sheet.row_count,
+            )
+        finally:
+            connection.close()
 
     def _connect(self, source_id: str) -> duckdb.DuckDBPyConnection:
         work_dir = self._settings.work_storage / source_id

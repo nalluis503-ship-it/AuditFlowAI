@@ -35,8 +35,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=resolved_settings.app_name,
         version=resolved_settings.app_version,
         description=(
-            "Traceable data foundation with durable local job execution "
-            "for AuditFlowAI."
+            "Traceable data foundation with durable jobs and resumable "
+            "large-source ingestion for AuditFlowAI."
         ),
         lifespan=lifespan,
     )

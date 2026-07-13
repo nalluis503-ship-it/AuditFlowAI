@@ -100,6 +100,67 @@ class FileSystemSourceStorage:
         finally:
             await upload.close()
 
+    def adopt_prepared_file(
+        self,
+        prepared_path: Path,
+        *,
+        source_id: str,
+        extension: str,
+        size_bytes: int,
+        sha256: str,
+    ) -> StoredUpload:
+        destination = self.source_path(source_id, extension)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_suffix(destination.suffix + ".adopting")
+
+        if destination.exists():
+            existing_digest = hashlib.sha256()
+            existing_size = 0
+            with destination.open("rb") as existing:
+                while chunk := existing.read(self._settings.upload_chunk_bytes):
+                    existing_size += len(chunk)
+                    existing_digest.update(chunk)
+            if existing_size == size_bytes and existing_digest.hexdigest() == sha256:
+                prepared_path.unlink(missing_ok=True)
+                return StoredUpload(
+                    path=destination,
+                    size_bytes=size_bytes,
+                    sha256=sha256,
+                )
+            raise InvalidSourceError(
+                "A different source file already exists for this source ID.",
+                code="source_storage_conflict",
+                status_code=409,
+                details={"source_id": source_id},
+            )
+
+        try:
+            verified_size = 0
+            verified_digest = hashlib.sha256()
+            with prepared_path.open("rb") as source:
+                while chunk := source.read(self._settings.upload_chunk_bytes):
+                    verified_size += len(chunk)
+                    verified_digest.update(chunk)
+
+            if verified_size != size_bytes or verified_digest.hexdigest() != sha256:
+                raise InvalidSourceError(
+                    "The prepared source changed before it was committed.",
+                    code="prepared_source_integrity_failed",
+                    status_code=409,
+                    details={"source_id": source_id},
+                )
+
+            prepared_path.replace(temporary)
+            temporary.replace(destination)
+            return StoredUpload(
+                path=destination,
+                size_bytes=size_bytes,
+                sha256=sha256,
+            )
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
+
     def persist_profile(self, source_id: str, payload: str) -> Path:
         destination = self._settings.profile_storage / f"{source_id}.json"
         temporary = destination.with_suffix(".json.tmp")

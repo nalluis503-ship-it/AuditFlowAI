@@ -70,7 +70,13 @@ class Database:
 
     def schema_is_ready(self, expected_revision: str) -> bool:
         tables = set(inspect(self.engine).get_table_names())
-        required = {"sources", "jobs", "job_events"}
+        required = {
+            "sources",
+            "jobs",
+            "job_events",
+            "upload_sessions",
+            "upload_parts",
+        }
         return (
             required.issubset(tables) and self.current_revision() == expected_revision
         )
@@ -78,7 +84,13 @@ class Database:
     def require_schema(self, expected_revision: str) -> None:
         current_revision = self.current_revision()
         tables = set(inspect(self.engine).get_table_names())
-        required = {"sources", "jobs", "job_events"}
+        required = {
+            "sources",
+            "jobs",
+            "job_events",
+            "upload_sessions",
+            "upload_parts",
+        }
         if required.issubset(tables) and current_revision == expected_revision:
             return
 

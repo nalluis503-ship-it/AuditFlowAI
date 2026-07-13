@@ -23,7 +23,7 @@ from backend.app.api.schemas import (
     SourceSummary,
 )
 from backend.app.application.source_service import PROFILE_VERSION
-from backend.app.domain.models import SourceProfile, SourceRecord
+from backend.app.domain.models import SourcePreview, SourceProfile, SourceRecord
 
 router = APIRouter(
     prefix="/api/v1/sources",
@@ -126,6 +126,29 @@ def list_sources(
             limit=limit,
             offset=offset,
         ),
+    )
+
+
+@router.get(
+    "/{source_id}/preview",
+    response_model=ApiResponse[SourcePreview],
+)
+def preview_source(
+    source_id: str,
+    container: Container,
+    sheet: Annotated[str | None, Query(min_length=1, max_length=255)] = None,
+    offset: Annotated[int, Query(ge=0, le=100000)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> ApiResponse[SourcePreview]:
+    preview = container.source_service.preview(
+        source_id,
+        sheet_name=sheet,
+        offset=offset,
+        limit=limit,
+    )
+    return ApiResponse(
+        message="Source preview retrieved",
+        data=preview,
     )
 
 

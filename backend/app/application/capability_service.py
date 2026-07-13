@@ -45,8 +45,28 @@ class CapabilityService:
                 supports_large_data=True,
                 execution_mode=ExecutionMode.HYBRID,
                 limitations=[
-                    "The HTTP upload itself is not yet chunk-resumable.",
-                    "Profiling is durable after the original file is stored.",
+                    "Direct multipart upload remains request-bound.",
+                    "Use source.upload-resumable for interrupted "
+                    "or very large transfers.",
+                ],
+            ),
+            Capability(
+                id="source.upload-resumable",
+                name="Resumable source upload",
+                description=(
+                    "Accepts large CSV, XLSX, and Parquet sources as verified "
+                    "parts, resumes after interruption, and assembles them in "
+                    "a durable background job before profiling."
+                ),
+                status=CapabilityStatus.AVAILABLE,
+                inputs=["source_metadata", "binary_parts", "sha256"],
+                outputs=["upload_session", "source_record", "job_record"],
+                engines=["filesystem", "sqlite", "local_worker"],
+                supports_large_data=True,
+                execution_mode=ExecutionMode.DURABLE_BACKGROUND,
+                limitations=[
+                    "The current storage provider is the local filesystem.",
+                    "Distributed object storage is not connected yet.",
                 ],
             ),
             Capability(
@@ -65,6 +85,24 @@ class CapabilityService:
                 limitations=[
                     "Progress is stage-based while an engine scans a file.",
                     "XLSX cardinality per column is not calculated yet.",
+                ],
+            ),
+            Capability(
+                id="source.preview",
+                name="Preview tabular source",
+                description=(
+                    "Returns a bounded row sample from a profiled CSV, XLSX, "
+                    "or Parquet source without returning the complete dataset."
+                ),
+                status=CapabilityStatus.AVAILABLE,
+                inputs=["source_record", "sheet", "offset", "limit"],
+                outputs=["source_preview"],
+                engines=["duckdb", "openpyxl"],
+                supports_large_data=True,
+                execution_mode=ExecutionMode.REQUEST_BOUND,
+                limitations=[
+                    "Preview responses are limited to 200 rows.",
+                    "Large XLSX offsets require sequential row traversal.",
                 ],
             ),
             Capability(

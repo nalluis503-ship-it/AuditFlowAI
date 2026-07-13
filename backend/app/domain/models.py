@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 
 class SourceStatus(StrEnum):
@@ -106,3 +106,19 @@ class ProfileOptions(BaseModel):
             sheet_name,
             self.header_rows.get("*"),
         )
+
+
+class SourcePreview(BaseModel):
+    source_id: str
+    sheet_name: str
+    columns: list[str]
+    rows: list[list[str | None]]
+    offset: int = Field(ge=0)
+    limit: int = Field(ge=1)
+    returned: int = Field(ge=0)
+    total_rows: int = Field(ge=0)
+
+    @computed_field
+    @property
+    def has_more(self) -> bool:
+        return self.offset + self.returned < self.total_rows

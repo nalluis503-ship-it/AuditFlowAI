@@ -7,7 +7,9 @@ def test_capability_registry_exposes_only_executable_capabilities(client):
     assert all(item["status"] == "available" for item in capabilities)
     assert {item["id"] for item in capabilities} == {
         "source.ingest",
+        "source.preview",
         "source.profile",
+        "source.upload-resumable",
         "source.reprofile",
         "source.catalog",
         "job.control",

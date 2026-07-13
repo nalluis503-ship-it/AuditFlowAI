@@ -14,6 +14,10 @@ from backend.app.infrastructure.migrations import (
     upgrade_database,
 )
 from backend.app.infrastructure.source_repository import SourceRow  # noqa: F401
+from backend.app.infrastructure.upload_repository import (  # noqa: F401
+    UploadPartRow,
+    UploadSessionRow,
+)
 
 
 def test_durable_job_schema_is_managed_by_alembic(tmp_path: Path):
@@ -28,7 +32,7 @@ def test_durable_job_schema_is_managed_by_alembic(tmp_path: Path):
     tables = set(inspect(database.engine).get_table_names())
     assert {"sources", "jobs", "job_events"}.issubset(tables)
     assert database.current_revision() == head_revision(settings)
-    assert database.current_revision() == "20260712_0002"
+    assert database.current_revision() == "20260712_0003"
 
 
 def test_upgrade_from_source_catalog_preserves_existing_rows(tmp_path: Path):
@@ -84,7 +88,7 @@ def test_upgrade_from_source_catalog_preserves_existing_rows(tmp_path: Path):
 
     assert count == 1
     assert job_count == 0
-    assert database.current_revision() == "20260712_0002"
+    assert database.current_revision() == "20260712_0003"
 
 
 def test_migrated_schema_matches_sqlalchemy_metadata(tmp_path: Path):
@@ -123,5 +127,5 @@ def test_durable_jobs_migration_downgrades_and_reapplies_cleanly(tmp_path: Path)
     assert database.current_revision() == "20260712_0001"
 
     upgrade_database(settings)
-    assert database.current_revision() == "20260712_0002"
-    assert database.schema_is_ready("20260712_0002") is True
+    assert database.current_revision() == "20260712_0003"
+    assert database.schema_is_ready("20260712_0003") is True

@@ -15,6 +15,7 @@ from backend.app.core.errors import (
 from backend.app.domain.models import (
     ProfileCompleteness,
     ProfileOptions,
+    SourcePreview,
     SourceProfile,
     SourceRecord,
     SourceStatus,
@@ -51,11 +52,14 @@ class SourceService:
         self._storage = storage
         self._profilers = profilers
 
-    async def receive(self, upload: UploadFile) -> SourceRecord:
-        original_name = self._storage.safe_original_name(upload.filename)
+    @property
+    def supported_extensions(self) -> frozenset[str]:
+        return self._profilers.supported_extensions
+
+    def normalize_source_name(self, filename: str | None) -> tuple[str, str]:
+        original_name = self._storage.safe_original_name(filename)
         extension = Path(original_name).suffix.lower()
         if extension not in self._profilers.supported_extensions:
-            await upload.close()
             raise InvalidSourceError(
                 "The source format is not supported.",
                 code="unsupported_source_format",
@@ -67,6 +71,14 @@ class SourceService:
                     ),
                 },
             )
+        return original_name, extension
+
+    async def receive(self, upload: UploadFile) -> SourceRecord:
+        try:
+            original_name, extension = self.normalize_source_name(upload.filename)
+        except Exception:
+            await upload.close()
+            raise
 
         source_id = uuid4().hex
         now = datetime.now(UTC)
@@ -103,6 +115,63 @@ class SourceService:
             if isinstance(exc, AuditFlowError):
                 exc.details.setdefault("source_id", source_id)
             raise
+
+    def register_prepared_source(
+        self,
+        *,
+        source_id: str,
+        original_name: str,
+        media_type: str | None,
+        prepared_path: Path,
+        size_bytes: int,
+        sha256: str,
+    ) -> SourceRecord:
+        safe_name, extension = self.normalize_source_name(original_name)
+
+        existing = self._repository.get(source_id)
+        if existing is not None:
+            if (
+                existing.original_name == safe_name
+                and existing.size_bytes == size_bytes
+                and existing.sha256 == sha256
+                and existing.stored_path
+                and Path(existing.stored_path).is_file()
+            ):
+                prepared_path.unlink(missing_ok=True)
+                return existing
+            raise InvalidSourceError(
+                "The prepared source conflicts with an existing source record.",
+                code="source_record_conflict",
+                status_code=409,
+                details={"source_id": source_id},
+            )
+
+        stored = self._storage.adopt_prepared_file(
+            prepared_path,
+            source_id=source_id,
+            extension=extension,
+            size_bytes=size_bytes,
+            sha256=sha256,
+        )
+        now = datetime.now(UTC)
+        record = SourceRecord(
+            id=source_id,
+            original_name=safe_name,
+            extension=extension.lstrip("."),
+            media_type=media_type,
+            size_bytes=stored.size_bytes,
+            sha256=stored.sha256,
+            stored_path=str(stored.path),
+            status=SourceStatus.STORED,
+            stored_at=now,
+            updated_at=now,
+        )
+        try:
+            self._repository.create(record)
+        except Exception:
+            self._storage.delete(source_id)
+            raise
+        return record
 
     async def ingest(
         self,
@@ -259,6 +328,70 @@ class SourceService:
 
     def get(self, source_id: str) -> SourceRecord:
         return self._require_record(source_id)
+
+    def preview(
+        self,
+        source_id: str,
+        *,
+        sheet_name: str | None,
+        offset: int,
+        limit: int,
+    ) -> SourcePreview:
+        record = self._require_record(source_id)
+        if record.profile is None:
+            raise InvalidSourceError(
+                "The source must be profiled before a preview can be created.",
+                code="source_profile_required",
+                status_code=409,
+                details={"source_id": source_id},
+            )
+        if not record.profile.sheets:
+            raise InvalidSourceError(
+                "The source profile does not contain a tabular sheet.",
+                code="source_sheet_unavailable",
+                status_code=409,
+                details={"source_id": source_id},
+            )
+
+        selected = None
+        if sheet_name is None:
+            selected = record.profile.sheets[0]
+        else:
+            selected = next(
+                (sheet for sheet in record.profile.sheets if sheet.name == sheet_name),
+                None,
+            )
+        if selected is None:
+            raise InvalidSourceError(
+                "The requested sheet does not exist in the source profile.",
+                code="source_sheet_not_found",
+                status_code=404,
+                details={
+                    "sheet": sheet_name,
+                    "available_sheets": [sheet.name for sheet in record.profile.sheets],
+                },
+            )
+        if not record.stored_path:
+            raise InvalidSourceError(
+                "The source does not have a stored original file.",
+                code="source_file_missing",
+                details={"source_id": source_id},
+            )
+        path = Path(record.stored_path)
+        if not path.is_file():
+            raise InvalidSourceError(
+                "The stored source file is missing.",
+                code="source_file_missing",
+                details={"source_id": source_id},
+            )
+        profiler = self._profilers.resolve(path)
+        return profiler.preview(
+            path,
+            source_id=record.id,
+            sheet=selected,
+            offset=offset,
+            limit=limit,
+        )
 
     def delete(self, source_id: str) -> None:
         self._require_record(source_id)
