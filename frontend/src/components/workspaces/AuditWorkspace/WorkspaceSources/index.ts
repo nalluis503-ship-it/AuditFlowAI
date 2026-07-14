@@ -5,4 +5,5 @@ export type {
   WorkspaceSource,
   WorkspaceSourceRejection,
   WorkspaceSourceStatus,
+  WorkspaceSourcesContextValue,
 } from './workspaceSourcesContext'

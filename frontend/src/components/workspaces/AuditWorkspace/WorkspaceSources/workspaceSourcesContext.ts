@@ -1,5 +1,9 @@
 import { createContext } from 'react'
-import type { SourceProfile } from '../../../../api/sourceApi'
+import type { JobRecord } from '../../../../api/jobApi'
+import type {
+  SourceProfile,
+  SourceSummary,
+} from '../../../../api/sourceApi'
 
 export type WorkspaceSourceStatus =
   | 'queued'
@@ -9,15 +13,22 @@ export type WorkspaceSourceStatus =
 
 export type WorkspaceSource = {
   localId: string
+  sourceId?: string
   name: string
   extension: string
   size: number
   mimeType: string
   lastModified: number
   status: WorkspaceSourceStatus
+  summary?: SourceSummary
   profile?: SourceProfile
+  job?: JobRecord
+  progressPercent?: number
+  progressStage?: string
+  progressMessage?: string
   error?: string
   createdAt: number
+  updatedAt?: number
 }
 
 export type WorkspaceSourceRejection = {
@@ -35,9 +46,12 @@ export type WorkspaceSourcesContextValue = {
   selectedSourceId: string | null
   readySourceCount: number
   isProcessing: boolean
+  isCatalogLoading: boolean
+  catalogError: string | null
   ingestFiles: (
     files: FileList | File[],
   ) => Promise<IngestFilesResult>
+  reloadSources: () => Promise<void>
   selectSource: (sourceId: string | null) => void
 }
 

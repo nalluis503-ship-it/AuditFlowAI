@@ -78,7 +78,10 @@ export default function GuidedDataStage() {
     sources,
     selectedSourceId,
     isProcessing,
+    isCatalogLoading,
+    catalogError,
     ingestFiles,
+    reloadSources,
     selectSource,
   } = useWorkspaceSources()
   const [selectedSheetName, setSelectedSheetName] =
@@ -137,10 +140,22 @@ export default function GuidedDataStage() {
             </strong>
 
             <p>
-              El archivo será almacenado, identificado mediante
-              SHA-256 y leído por el backend. Todavía no se muestran
-              resultados parciales ni estimados.
+              {selectedSource.progressMessage
+                ?? 'El archivo está siendo almacenado y perfilado por un job durable del backend. Todavía no se muestran resultados parciales ni estimados.'}
             </p>
+
+            {selectedSource.job && (
+              <small className="guided-job-progress">
+                Progreso real:{' '}
+                {Math.round(
+                  selectedSource.progressPercent
+                    ?? selectedSource.job.progress_percent,
+                )}%
+                {selectedSource.progressStage
+                  ? ` · ${selectedSource.progressStage}`
+                  : ''}
+              </small>
+            )}
           </div>
         </div>
       )
@@ -354,21 +369,23 @@ export default function GuidedDataStage() {
 
         <label
           className={`guided-stage-upload ${
-            isProcessing ? 'disabled' : ''
+            isProcessing || isCatalogLoading ? 'disabled' : ''
           }`}
         >
           <input
             type="file"
             multiple
             accept=".xlsx,.csv"
-            disabled={isProcessing}
+            disabled={isProcessing || isCatalogLoading}
             onChange={handleFilesSelected}
           />
 
           <strong>
-            {isProcessing
-              ? 'Procesando fuentes'
-              : 'Seleccionar fuentes'}
+            {isCatalogLoading
+              ? 'Recuperando catálogo'
+              : isProcessing
+                ? 'Procesando fuentes'
+                : 'Seleccionar fuentes'}
           </strong>
 
           <span>
@@ -376,6 +393,22 @@ export default function GuidedDataStage() {
           </span>
         </label>
       </header>
+
+      {catalogError && (
+        <div className="guided-stage-catalog-error" role="alert">
+          <div>
+            <strong>No fue posible recuperar el catálogo persistente</strong>
+            <p>{catalogError}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void reloadSources()}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {rejectedFiles.length > 0 && (
         <div className="guided-stage-rejected" role="status">
@@ -391,7 +424,23 @@ export default function GuidedDataStage() {
         </div>
       )}
 
-      {sources.length === 0 ? (
+      {isCatalogLoading && sources.length === 0 ? (
+        <div
+          className="guided-stage-empty"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="guided-processing-pulse" />
+
+          <div>
+            <strong>Recuperando fuentes persistentes</strong>
+
+            <p>
+              AuditFlow está consultando el catálogo real almacenado en el backend.
+            </p>
+          </div>
+        </div>
+      ) : sources.length === 0 ? (
         <div className="guided-stage-empty">
           <div className="guided-stage-orbit">
             <span />
@@ -463,7 +512,9 @@ export default function GuidedDataStage() {
                     <span>
                       {source.status === 'failed'
                         ? 'Requiere revisión'
-                        : 'Pendiente de resultado'}
+                        : source.job
+                          ? `${Math.round(source.job.progress_percent)}% de progreso`
+                          : 'Pendiente de resultado'}
                     </span>
                   )}
                 </div>

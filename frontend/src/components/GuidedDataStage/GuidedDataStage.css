@@ -530,7 +530,7 @@
   color: #bfdbfe;
 }
 
-.guided-file-status.completed {
+.guided-file-status.ready {
   background: rgba(16, 185, 129, 0.15);
   color: #a7f3d0;
 }
@@ -693,6 +693,56 @@
 
   .guided-sheet-heading {
     align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* v0.14.0 - Persistent source catalog and durable job feedback */
+
+.guided-stage-catalog-error {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 18px;
+  background: rgba(120, 53, 15, 0.2);
+}
+
+.guided-stage-catalog-error strong {
+  color: #fde68a;
+}
+
+.guided-stage-catalog-error p {
+  margin: 6px 0 0;
+  color: rgba(254, 243, 199, 0.76);
+  line-height: 1.45;
+}
+
+.guided-stage-catalog-error button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 999px;
+  color: #fef3c7;
+  background: rgba(120, 53, 15, 0.42);
+  cursor: pointer;
+}
+
+.guided-job-progress {
+  display: block;
+  margin-top: 9px;
+  color: rgba(191, 219, 254, 0.72);
+}
+
+@media (max-width: 680px) {
+  .guided-stage-catalog-error {
+    align-items: stretch;
     flex-direction: column;
   }
 }
